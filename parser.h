@@ -15,7 +15,7 @@ bool r_program();
 bool r_fc_dec();
 
 /* Pravidlo pre <Declaration>
- * Deklaraacia funkcii
+ * Deklaracia funkcii
  */
 bool r_declaration();
 
@@ -83,5 +83,10 @@ bool r_stat_list();
  * Datove typy
  */
 bool r_type();
+
+/* Pravidlo pre <ParPar> 
+ * Typy parametrov pri volani funkcie
+ */
+bool r_par_par();
 
 #endif /* PARSER_H */

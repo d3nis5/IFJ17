@@ -35,7 +35,7 @@ typedef enum token_type
 	TKN_leftpar,	/* ( */
 	TKN_rightpar,	/* ) */
 	TKN_EOL,		/* \n */
-	TKN_EOF,		/* EOF */
+	TKN_EOF,		/* EOF */ /*20*/
 
 	/* KLUCOVE SLOVA */
 
