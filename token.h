@@ -91,7 +91,8 @@ typedef struct token
 		int integer;			/* hodnota integer */
 		double dble;			/* hodnota double */
 		char *string;			/* retazec */
-		SYMTB_itemptr st_ptr;	/* ukazatel do tabulky symbolov */
+		SYMTB_itemptr_l st_var_ptr;	/* ukazatel do lokalnej tabulky symbolov */
+		SYMTB_itemptr_g st_fc_ptr;	/* ukazatel do globalnej tabulky symbolov */
 	} attribute;
 
 } Ttoken;

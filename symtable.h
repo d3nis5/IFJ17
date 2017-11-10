@@ -4,6 +4,7 @@
 #ifndef SYMTABLE_H
 #define SYMTABLE_H
 
+#define MAX_PAR 128		/* maximalny pocet parametrov funkcie */
 
 /* Tabulka symbolov implementovana v podobe binarneho vyhladavacieho stromu 
  * SYMTB_itemptr_g		polozka globalnej tabulky symbolov, su v nej iba funkcie
@@ -18,38 +19,37 @@ typedef enum data_type {
 } DT_type;		
 
 
-typedef struct global_symtable_item
-{
-	char *function_name;			/* nazov funkcie */
-	bool fc_declared;				/* bola funkcia deklarovana? */
-	bool fc_defined;				/* bola funkcia definovana? */ 
-	DT_type ret_type;				/* navratovy typ funkcie */
-	SYMTB_itemptr_l local_symtb;	/* ukazatel do lokalnej tabulky symbolov */
-	global_symtable_item *lptr;		/* ukazatel na lavy podstrom */
-	global_symtable_item *rptr;		/* ukazatel na pravy podstrom */
-		
-	/* TODO */
-	/* funkcia: 	-parametre
-
-	   premenna: 	-hodnota
-					
-	   ukazatel na pravy a lavy podstrom
-	*/
-
-
-} *SYMTB_itemptr_g;		/* ukazatel na polozku v globalnej tabulke symbolov(funkcia) */
-
-
 typedef struct local_symtable_item
 {
-	char *var_name;					/* nazov premennej */
-	bool var_declared;				/* bola premenna deklarovana */
-	bool var_defined;				/* bola premenna definovana */
-	DT_type type;					/* datovy typ premennej */
-	local_symtable_item *lpt;		/* ukazatel na lavy podstrom */
-	local_symtable_item *rptr;		/* ukazatel na pravy podstrom */
+	char *var_name;						/* nazov premennej */
+	bool var_declared;					/* bola premenna deklarovana */
+	bool var_defined;					/* bola premenna definovana */
+	DT_type type;						/* datovy typ premennej */
+	union								/* hodnota premennej */
+	{
+		int int_value;
+		double dbl_value;
+		char *str_value;
+	} value;
+	struct local_symtable_item *lptr;	/* ukazatel na lavy podstrom */
+	struct local_symtable_item *rptr;	/* ukazatel na pravy podstrom */
 
 } *SYMTB_itemptr_l;		/* ukazatel na polozku v lokalnej tabulke symbolov(premenna) */
+
+
+typedef struct global_symtable_item
+{
+	char *function_name;				/* nazov funkcie */
+	bool fc_declared;					/* bola funkcia deklarovana? */
+	bool fc_defined;					/* bola funkcia definovana? */ 
+	DT_type ret_type;					/* navratovy typ funkcie */
+	DT_type parameters[MAX_PAR];		/* parametre funkcie */
+	SYMTB_itemptr_l local_symtb;		/* ukazatel do lokalnej tabulky symbolov */
+	struct global_symtable_item *lptr;	/* ukazatel na lavy podstrom */
+	struct global_symtable_item *rptr;	/* ukazatel na pravy podstrom */
+		
+} *SYMTB_itemptr_g;		/* ukazatel na polozku v globalnej tabulke symbolov(funkcia) */
+
 
 
 
@@ -63,9 +63,15 @@ void LST_init(SYMTB_itemptr_l *);
  */
 SYMTB_itemptr_l LST_search(SYMTB_itemptr_l RootPtr, char *name);
 
-/* Prida premennu do tabulky symbolov */
+/* Prida premennu do tabulky symbolov 
+ * Pri chybe alokacie vracia NULL a v err_code je kod chyby
+ * !!!!!!!!!!!Pri uspechu vracia tiez NULL ale err_code je nezmenene!!!!!!!!!!
+ * Ak sa v tabulke uz nachadza premenna s tymto menom vracia sa ukazatel na nu
+ */
 SYMTB_itemptr_l LST_add_var(SYMTB_itemptr_l *RootPtr, char *name, bool declared, bool defined, DT_type type);
 
+/* Zrusi celu lokalnu tabulku symbolov */
+void LST_delete_tab(SYMTB_itemptr_l *);
 
 
 /* ----------FUNKCIE PRE PRACU S GLOBALNOU TABULKOU SYMBOLOV---------- */
@@ -78,8 +84,15 @@ void GST_init(SYMTB_itemptr_g *);
  */
 SYMTB_itemptr_g GST_search(SYMTB_itemptr_g RootPtr, char *name);
 
-/* Prida funkciu do tabulky symbolov */
-SYMTB_itemptr_l GST_add_function(SYMTB_itemptr_g *RootPtr, char *name, bool declared, bool defined, DT_type type);
+/* Prida funkciu do tabulky symbolov 
+ * Pri chybe alokacie vracia NULL a v err_code je kod chyby
+ * !!!!!!!!!!!Pri uspechu vracia tiez NULL ale err_code je nezmenene!!!!!!!!!!
+ * Ak sa v tabulke uz nachadza funkcia s tymto menom vracia sa ukazatel na nu
+ */
+SYMTB_itemptr_g GST_add_function(SYMTB_itemptr_g *RootPtr, char *name, bool declared, bool defined, DT_type type);
+
+/* Zrusi celu globalnu tabulku symbolov */
+void GST_delete_tab(SYMTB_itemptr_g *);
 
 
 #endif /* SYMTABLE_H */
