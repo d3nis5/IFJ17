@@ -6,6 +6,11 @@
 #include <stdio.h>
 #include "token.h"
 
+
+/* TODO zmazat */
+Ttoken *get_token();
+
+
 /* Pravidlo pre <Program> */
 bool r_program();
 

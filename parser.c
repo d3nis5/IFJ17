@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "precedSA.h"
 
 int err_code = 0;
 
@@ -9,51 +10,71 @@ Ttoken *token;
 Ttoken *get_token()
 {
 	static int i = -1;
-	Ttoken *pole[10];
+	Ttoken *pole[30];
 
 	i++;
 
 	Ttoken *token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = KWD_declare;
+	token->type = KWD_scope;
 	pole[0] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = KWD_function;
+	token->type = TKN_EOL;
 	pole[1] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_id;
+	token->type = KWD_if;
 	pole[2] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_leftpar;
+	token->type = TKN_int;
 	pole[3] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_id;
+	token->type = KWD_then;
 	pole[4] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = KWD_as;
+	token->type = TKN_EOL;
 	pole[5] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = KWD_double;
+	token->type = KWD_else;
 	pole[6] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_rightpar;
+	token->type = TKN_EOL;
 	pole[7] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = KWD_as;
+	token->type = KWD_end;
 	pole[8] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = KWD_integer;
+	token->type = KWD_if;
 	pole[9] = token;
 
-	printf("pole[%d] = %d\n", i, pole[i]->type );
+	token = (Ttoken*) malloc(sizeof(Ttoken));
+	token->type = TKN_EOL;
+	pole[10] = token;
+
+	token = (Ttoken*) malloc(sizeof(Ttoken));
+	token->type = KWD_end;
+	pole[11] = token;
+
+	token = (Ttoken*) malloc(sizeof(Ttoken));
+	token->type = KWD_scope;
+	pole[12] = token;
+
+	token = (Ttoken*) malloc(sizeof(Ttoken));
+	token->type = TKN_EOL;
+	pole[13] = token;	
+
+	token = (Ttoken*) malloc(sizeof(Ttoken));
+	token->type = TKN_EOF;
+	pole[14] = token;
+/*
+	printf("pole[%d] = %d\n", i, pole[i]->type );*/
 	return pole[i];
 }
 
@@ -80,6 +101,14 @@ bool r_program()
 			//err_code = SYNTAX_ERR;
 			return false;
 		}
+	
+		token = get_token();
+
+		if ( token->type != TKN_EOL )
+		{
+			//err_code = SYNTAX_ERR;
+			return false;
+		}
 
 		token = get_token();
 
@@ -88,9 +117,8 @@ bool r_program()
 			//err_code = SYNTAX_ERR;
 			return false;
 		}
-		
+
 		if ( token->type != KWD_end )
-			return false;
 		{
 			//err_code = SYNTAX_ERR;
 			return false;
@@ -98,8 +126,8 @@ bool r_program()
 
 		token = get_token();
 		
+	
 		if ( token->type != KWD_scope )
-			return false;
 		{
 			//err_code = SYNTAX_ERR;
 			return false;
@@ -421,7 +449,12 @@ bool r_var_definition()
 	{
 		/* Simulacia pravidla '9' */
 	
-		/* TODO volanie precedencnej */
+		if ( vyhodnot_vyraz(&token) != 0) 
+		{
+			/* TODO err code */
+			//err_code = SYNTAX_ERR;
+			return false;
+		}
 	}
 	else if ( token->type == TKN_EOL )
 	{
@@ -480,8 +513,13 @@ bool r_expr_list()
 	( token->type == TKN_dbl ) )
 	{
 		/* Simulacia pravidla '10' */
-
-		/* TODO volanie precedencnej */
+	
+		if ( vyhodnot_vyraz(&token) != 0 )
+		{
+			/* TODO err_code */
+			//err_code = SYNTAX_ERR;
+			return false;
+		}		
 	}
 	else if ( token->type == TKN_EOL)
 	{
@@ -721,7 +759,12 @@ bool r_rhs()
 	{
 		/* Simulacia pravidla '20' */
 
-		/* TODO volanie precedencnej */
+		if ( vyhodnot_vyraz(&token) != 0 )
+		{
+			/* TODO err_code */
+			//err_code = SYNTAX_ERR;
+			return false;
+		}
 	}
 	else
 	{
@@ -782,8 +825,13 @@ bool r_stat()		/* TODO otestovat */
 		/* Simulacia pravidla '23' */
 		
 		token = get_token();
-
-		/* TODO volanie precedencnej, get_token() ???? */
+	
+		if ( vyhodnot_vyraz(&token) != 0 )
+		{
+			/* TODO err_code */
+			//err_code = SYNTAX_ERR;
+			return false;
+		}
 
 		if ( token->type != TKN_smcolon )
 		{
@@ -805,7 +853,12 @@ bool r_stat()		/* TODO otestovat */
 
 		token = get_token();
 
-		/* TODO volanie precedencnej, get_token ???? */
+		if ( vyhodnot_vyraz(&token) != 0 )
+		{
+			/* TODO err_code */
+			//err_code = SYNTAX_ERR;
+			return false;
+		}
 
 		
 		if ( token->type != KWD_then )
@@ -835,7 +888,6 @@ bool r_stat()		/* TODO otestovat */
 			//err_code = SYNTAX_ERR;
 			return false;
 		}
-
 		token = get_token();
 
 		if ( token->type != TKN_EOL ) 
@@ -843,7 +895,7 @@ bool r_stat()		/* TODO otestovat */
 			//err_code = SYNTAX_ERR;
 			return false;
 		}
-		
+
 		token = get_token();
 
 		if ( r_stat_list() == false )
@@ -851,7 +903,7 @@ bool r_stat()		/* TODO otestovat */
 			//err_code = SYNTAX_ERR;
 			return false;
 		}
-
+			
 		if ( token->type != KWD_end )
 		{
 			//err_code = SYNTAX_ERR;
@@ -865,16 +917,7 @@ bool r_stat()		/* TODO otestovat */
 			//err_code = SYNTAX_ERR;
 			return false;
 		}
-		
 		token = get_token();
-	}
-	else if ( (token->type == TKN_leftpar) || ( token->type == TKN_id ) ||
-	(token->type == TKN_int ) || ( token->type == TKN_dbl ) || 
-	( token->type == TKN_str ) )
-	{
-		/* Simulacia pravidla '29' */
-	
-		/* TODO volanie precedencnej */
 	}
 	else if ( token->type == KWD_do )
 	{
@@ -889,8 +932,13 @@ bool r_stat()		/* TODO otestovat */
 		}
 		
 		token = get_token();
-
-		/* TODO volanie precedencnej */
+	
+		if ( vyhodnot_vyraz(&token) != 0 )
+		{
+			/* TODO err_code */
+			//err_code = SYNTAX_ERR;
+			return false;
+		}
 
 		if ( token->type != TKN_EOL )	
 		{
@@ -917,8 +965,13 @@ bool r_stat()		/* TODO otestovat */
 	{
 		/* Simulacia pravidla '26' */
 
-
-		/* TODO volanie precedencnej */
+		/* TODO iba vo funkcii*/
+		if ( vyhodnot_vyraz(&token) != 0 )
+		{
+			/* TODO err_code */
+			//err_code = SYNTAX_ERR;
+			return false;
+		}
 	}
 	else
 	{
@@ -938,7 +991,6 @@ bool r_stat_list()
 	{
 		/* Simulacia pravidla '30' */
 		/* Epsilon pravidlo */
-
 		return true;
 	}
 
@@ -980,24 +1032,31 @@ bool r_stat_list()
 
 	#endif
 
-	if ( r_stat() == false )
-	{
-		//err_code = SYNTAX_ERR;
-		return false;
-	}
+	/* Simulacia pravidla '31' */
 
-	if ( token->type != TKN_EOL )
+	else
 	{
-		//err_code = SYNTAX_ERR;
-		return false;
-	}
+		if ( r_stat() == false )
+		{
+			//err_code = SYNTAX_ERR;
+			return false;
+		}
 
-	if ( r_stat_list() == false )
-	{
-		//err_code = SYNTAX_ERR;
-		return false;
+		if ( token->type != TKN_EOL )
+		{
+			//err_code = SYNTAX_ERR;
+			return false;
+		}
+	
+		token = get_token();
+			
+		if ( r_stat_list() == false )
+		{
+			//err_code = SYNTAX_ERR;
+			return false;
+		}
+		
 	}
-
 	return true;
 }
 /* KONIEC r_stat_list() */
@@ -1039,7 +1098,7 @@ int main()
 {
 	token = get_token();
 	
-	if(r_declaration() == true)
+	if(r_program() == true)
 		printf("SYNTAX OK\n");
 	else
 		printf("SYNTAX ERROR\n");
