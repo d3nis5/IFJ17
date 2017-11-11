@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "token.h"
-
+#include "precedSA.h"
 
 /* TODO zmazat */
 Ttoken *get_token();

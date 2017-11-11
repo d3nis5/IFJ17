@@ -1,5 +1,4 @@
 #include "parser.h"
-#include "precedSA.h"
 
 int err_code = 0;
 

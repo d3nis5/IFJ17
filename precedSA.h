@@ -9,6 +9,9 @@
 #include"error.h"
 #include"token.h"
 
+#ifndef PRECEDSA_H
+#define PRECEDSA_H
+
 typedef struct tdElem
 {
     Ttoken *TokenPtr;				//Ukazatel na token
@@ -84,3 +87,5 @@ int WhichRule(int *, int);
 /*Uplatni dane pravidlo na zasobnik od daneho prvku v zasobniku.
 **Vracia 0 ked sa to podari, -1 pri chybe kompilatora*/
 int DoRule(tdStack *, int);
+
+#endif 	/* PRECEDSA_H */
