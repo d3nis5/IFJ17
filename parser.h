@@ -1,11 +1,13 @@
-#ifndef PARSER_H
-#define PARSER_H
-
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "token.h"
 #include "precedSA.h"
+#include "symtable.h"
+#include "error.h"
+
+#ifndef PARSER_H
+#define PARSER_H
 
 /* TODO zmazat */
 Ttoken *get_token();

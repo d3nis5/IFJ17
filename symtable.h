@@ -1,5 +1,8 @@
 #include <stdbool.h>
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 
 #ifndef SYMTABLE_H
 #define SYMTABLE_H
@@ -9,14 +12,7 @@
 /* Tabulka symbolov implementovana v podobe binarneho vyhladavacieho stromu 
  * SYMTB_itemptr_g		polozka globalnej tabulky symbolov, su v nej iba funkcie
  * SYMTB_itemptr_l 		polozka lokalnej tabulky symbolov, su v nej iba premenne
- * DT_type				enum datovych typov
  */ 
-
-typedef enum data_type {
-	TYPE_integer,			/* datovy typ INTEGER */
-	TYPE_double,			/* datovy typ DOUBLE */
-	TYPE_string,			/* datovy typ STRING */
-} DT_type;		
 
 
 typedef struct local_symtable_item
@@ -24,7 +20,7 @@ typedef struct local_symtable_item
 	char *var_name;						/* nazov premennej */
 	bool var_declared;					/* bola premenna deklarovana */
 	bool var_defined;					/* bola premenna definovana */
-	DT_type type;						/* datovy typ premennej */
+	char type;							/* datovy typ premennej {'i', 'd', 's'} */
 	union								/* hodnota premennej */
 	{
 		int int_value;
@@ -42,8 +38,9 @@ typedef struct global_symtable_item
 	char *function_name;				/* nazov funkcie */
 	bool fc_declared;					/* bola funkcia deklarovana? */
 	bool fc_defined;					/* bola funkcia definovana? */ 
-	DT_type ret_type;					/* navratovy typ funkcie */
-	DT_type parameters[MAX_PAR];		/* parametre funkcie */
+	char ret_type;						/* datovy typ premennej {'i', 'd', 's'} */
+	int par_count;						/* pocet parametrov funkcie*/
+	char parameters[MAX_PAR];			/* parametre funkcie */
 	SYMTB_itemptr_l local_symtb;		/* ukazatel do lokalnej tabulky symbolov */
 	struct global_symtable_item *lptr;	/* ukazatel na lavy podstrom */
 	struct global_symtable_item *rptr;	/* ukazatel na pravy podstrom */
@@ -68,7 +65,7 @@ SYMTB_itemptr_l LST_search(SYMTB_itemptr_l RootPtr, char *name);
  * !!!!!!!!!!!Pri uspechu vracia tiez NULL ale err_code je nezmenene!!!!!!!!!!
  * Ak sa v tabulke uz nachadza premenna s tymto menom vracia sa ukazatel na nu
  */
-SYMTB_itemptr_l LST_add_var(SYMTB_itemptr_l *RootPtr, char *name, bool declared, bool defined, DT_type type);
+SYMTB_itemptr_l LST_add_var(SYMTB_itemptr_l *RootPtr, char *name, bool declared, bool defined, char type);
 
 /* Zrusi celu lokalnu tabulku symbolov */
 void LST_delete_tab(SYMTB_itemptr_l *);
@@ -89,9 +86,20 @@ SYMTB_itemptr_g GST_search(SYMTB_itemptr_g RootPtr, char *name);
  * !!!!!!!!!!!Pri uspechu vracia tiez NULL ale err_code je nezmenene!!!!!!!!!!
  * Ak sa v tabulke uz nachadza funkcia s tymto menom vracia sa ukazatel na nu
  */
-SYMTB_itemptr_g GST_add_function(SYMTB_itemptr_g *RootPtr, char *name, bool declared, bool defined, DT_type type);
+SYMTB_itemptr_g GST_add_function(SYMTB_itemptr_g *RootPtr, char *name, bool declared, bool defined, char type, char *params);
 
-/* Zrusi celu globalnu tabulku symbolov */
+/* Prida parameter typu 'type' funkcii na ktoru ukazuje ukazatel 'function'
+ * Vracia false ak sa nepodari pridat parameter z dovodu prekrocenia pola,
+ * inak vracia true
+ */
+bool GST_add_par(SYMTB_itemptr_g function, char type);
+
+/* Do tabulky symbolov vlozi vsetky vstavane funkcie 
+ * Pri neuspechu vracia false, inak true
+ */
+bool GST_add_builtin(SYMTB_itemptr_g *table);
+
+/* Zrusi celu globalnu tabulku symbolov a aj kazdu lokalnu tabulku */
 void GST_delete_tab(SYMTB_itemptr_g *);
 
 
