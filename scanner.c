@@ -16,7 +16,7 @@ void ignor_blok_kom(int *c) {
 		}
 		(*c) = fgetc(SUBOR); //skonci cyklus, teda natrafi na " ' ", nacita novy znak
 
-		if((*c) == '\\') { 	//zisti ci je sekvencia ukoncenia kom. dodrzana
+		if((*c) == '/') { 	//zisti ci je sekvencia ukoncenia kom. dodrzana
 			break;		// a opusti preskakovanie komentaru
 		}
 	}
@@ -29,21 +29,20 @@ char* to_lower_case(char* string) {
 }
 
 
-token_t* get_token() {
+Ttoken* get_token(Ttoken *token) { 					//nemoze byt void ??????
 	
-	druh_tokenu stav; //aktualny stav
-	hodnota_tokenu hodnota;
+	TKN_type stav; //aktualny stav
 
-	token_t *token = malloc(sizeof(token_t));
-	if(token == NULL) {
-		fprintf(stderr, "Nepodarilo sa naalokovat pamat\n");
-		exit(1);
-	}
+/*	Ttoken *token = malloc(sizeof(Ttoken));*/
+/*	if(token == NULL) {*/
+/*		fprintf(stderr, "Nepodarilo sa naalokovat pamat\n");*/
+/*		exit(1);*/
+/*	}*/
 
 
 	int index; //index k roznym ucelom, treba vzdy nulovat
 
-	char *str_pomocny = (char*)malloc(sizeof(char));			//	TO CHECK
+	char *str_pomocny = (char*)malloc(ALOC);			//	TO CHECK - zatial 128.
 
 	int c = fgetc(SUBOR); //nacitam znaku
 
@@ -57,7 +56,7 @@ token_t* get_token() {
 		}
 
 		if(c == '\n') {			//ak je c znak konca riadku
-			token->dt = ZN_EOL;
+			token->type = TKN_EOL;
 		}
 
 		if(c == '\'') { //ak je apostrof, ide o riadkovy koment
@@ -65,118 +64,299 @@ token_t* get_token() {
 		}
 
 		if(c == '+') {
-			token->dt = PLUS; 	
+			token->type = TKN_plus; 	
 		}
 
 		if(c == '-') {
-			token->dt = MINUS;
+			token->type = TKN_minus;
 		}
 
 		if(c == '*') {
-			token->dt = KRAT;
+			token->type = TKN_star;
 		}
 
 		if(c == '/') {
-			stav = LOMITKO;
+			stav = TKN_slash;
 		}
 
-		if(c == '\\') {			//spatne lomitko ...
-			token->dt = S_LOMITKO;
+		if(c == '\\') {			//spatne TKN_slash ...
+			token->type = TKN_backslash;
 		}
 
 		if(c == '>') {
-			stav = VACSITKO;
+			stav = TKN_gt;
 		}
 
 		if(c == '<') {
-			stav = MENSITKO;
+			stav = TKN_less;
 		}
 
 		if(c == '=') {
-			token->dt = ROVNASA;
+			token->type = TKN_eq;
 		}
 
 		if(c == ';') {
-			token->dt = STREDNIK;
+			token->type = TKN_smcolon;
 		}
 
 		if(c == '(') {
-			token->dt = L_ZATVORKA;
+			token->type = TKN_leftpar;
 		}			
 
 		if(c == ')') {
-			token->dt = P_ZATVORKA;
+			token->type = TKN_rightpar;
 		}	
 
-		if(c == '!') {			//String zacina "!"
-			stav = RETAZEC;
+		if(c == '!') {			//String zacina " !" "
+			stav = TKN_str;
 		}	
 		
 		if(isalpha(c) || (c == '_')) {	// _ alebo a-z znaci ID
-			stav = IDENTIF;
+			stav = TKN_id;
 		}
 
 		if(isdigit(c)) {				//ci je double sa overi az v switchi
-			stav = INTGR;
+			stav = TKN_int;
 		}
 
 
 		switch(stav) {
 			
-			case IDENTIF :
+			case TKN_id :
 				index = 0;
 				while(isdigit(c) || isalpha(c) || (c == '_')) {
-					hodnota.uk_do_symtab[index] = c;
+					//token->attribute.st_ptr[index] = c; //ako sa pracuje so symtable ???
 					index++;
 				}
-				token->dt = stav; 		 //priradi "stav", teda typ tokenu do tokenu
-				token->ht.uk_do_symtab = hodnota.uk_do_symtab; //ulozi hodnotu tokenu
+				token->type = stav; 		 //priradi "stav", teda typ tokenu do tokenu
+				//token->attribute.st_ptr = token->attribute.st_ptr; //ulozi hodnotu tokenu
 				break;
 
 
-			case INTGR :			// -------- TODO --------
+			case TKN_int :
 				index = 0;
-				while(isdigit(c)) {
-					
+
+				while(isdigit(c)) { //ak je znak cislo
+					str_pomocny[index] = c; //uloz znak do pomocneho stringu
+					c = fgetc(SUBOR); // nacitaj dalsi znak
+					index++;
 				}
 
-			case DBLE :	/* v pripade, ze v intgr pride bodka	*/	
+				if(!((c == 'E') || (c == 'e') || (c == '.'))) { 	//ak nejde o double
+					ungetc(c, SUBOR); 								//vrat posledny znak
+					str_pomocny[index] = '\0'; 						//koniec retazca
+
+					token->type = TKN_int;							//int ostal integer
+					token->attribute.integer = atoi(str_pomocny);
+					printf("Cele cislo\n");
+					break;											// a skonci
+				}
+				else {	 //TO CHECK ci to ide takto spravit ??
+					stav = TKN_dbl;									//znak je bodka -> ide o double
+					str_pomocny[index] = c;							//do stringu sa prida bodka
+					index++;
+				}													//ziaden break -> pokracuje do double.
+
+				
+				
+
+			case TKN_dbl :	/* v pripade, ze v TKN_int pride bodka	*/
+				// ------------ TODO -----------
+				switch(c) {
+
+					case 'E' :
+					case 'e' :
+						printf("cele cislo s exponentom \n");
+
+						c = fgetc(SUBOR);
+						if(isdigit(c)) {
+							str_pomocny[index] = c;
+							index++;
+						}
+						else {
+							fprintf(stderr, "Lex Err: expont musi obsahovat nepr. postupnost cisl.\n");
+							exit(1);
+						}
+
+						c = fgetc(SUBOR);
+						while(isdigit(c)) {
+							str_pomocny[index] = c;
+							index++;
+							c = fgetc(SUBOR);
+						}
+
+						break;
+
+					case '.' :
+						printf("Normalny double \n");
+						c = fgetc(SUBOR); 				//nacitaj prvy znak po bodke
+
+						if(!(isdigit(c))) {
+							fprintf(stderr, "Lexikalna chyba double ma tvar num.num\n");
+							exit(1);
+						}
+						else {
+							str_pomocny[index] = c;		//zapis cislo do stringu, ktory ma zatial tvar "int."
+							index++;
+						}
+
+						c = fgetc(SUBOR);
+						
+						while(isdigit(c)) {				//zapisuj dalsie cisla za desatinu ciarku
+							str_pomocny[index] = c;
+							index++;
+							c = fgetc(SUBOR);
+						}
+
+						if((c == 'E') || (c == 'e')) {	//exponent prisiel za desatinym cislom
+
+							str_pomocny[index] = c;		//zapis do stringu znak e/E
+							index++;
+
+							c = fgetc(SUBOR);			// nacitaj dalsi znak
+
+							if((c == '+') || (c == '-') || (isdigit(c))) { //ak je tam dobrovolne +/- zapis, ak nie zapis cislo
+								str_pomocny[index] = c;
+								index++;
+							
+							}
+							else {
+								fprintf(stderr, "Lex Err: po exponente musi ist cislo, alebo +/-");
+							}
+							
+							c = fgetc(SUBOR);
+
+							while(isdigit(c)) {
+								str_pomocny[index] = c;
+								index++;
+								c = fgetc(SUBOR);
+							}
+							
+						}
+
+						break;
+				}
+				token->type = TKN_dbl;
+				token->attribute.dble = strtod(str_pomocny, NULL);
+
+				printf("Double ma hodnotu: %lf \n", token->attribute.dble);
+
+				break;
+
+/*				c = fgetc(SUBOR); 				//nacitaj prvy znak po bodke*/
+
+/*				if(!(isdigit(c))) {*/
+/*					fprintf(stderr, "Lexikalna chyba double ma tvar num.num\n");*/
+/*					exit(1);*/
+/*				}*/
+/*				else {*/
+/*					str_pomocny[index] = c;		//zapis cislo do stringu, ktory ma zatial tvar "int."*/
+/*				}*/
+/*				break;*/
+/*				*/
+	
 				// -------- TODO --------
 
 
-			case RETAZEC :			
-				// -------- TODO --------
-			
+			case TKN_str :								//TODO treba doplnit re-alloc ak dojde pamat
+				index = 0;
 
-			
-			case LOMITKO : //moze byt komentar, alebo deleno
-				// -------- TODO --------
+				if(c = fgetc(SUBOR) == '"') {		//ak zacina str spravne ...
+
+					while(c = fgetc(SUBOR) != '"') { //kym neskonci s "
+						
+						if(c == '\n') { 			//alebo kym nenarazi na koniec riadku
+							break;
+						} 
+
+						str_pomocny[index] = c;		//zapisuj znaky str, do pomocneho str,
+						index++;
+					
+					}
+
+					str_pomocny[index] = '\0'; //ukonci retazec
+					token->type = TKN_str;
+					strcpy(token->attribute.string, str_pomocny);
+				}
+
+				else {
+					fprintf(stderr, "Chybne zadany string format je : !\" \" \n");					
+				}
+				break;
+
+						
+			case TKN_slash : //moze byt komentar, alebo deleno
+
+				if(c = fgetc(SUBOR) == '\'') {
+					ignor_blok_kom(&c);
+					continue;			//
+				}
+
+				else { //je to lomitko ...
+					token->type = TKN_slash;
+				}
 
 
 
-			case MENSITKO : //moze ostat mensitkom, alebo pribudne rovnasa
-				// -------- TODO --------
+
+			case TKN_less : //moze ostat TKN_lessm, alebo pribudne TKN_eq
+				
+				if(c = fgetc(SUBOR) == '>') { 		//ak za < nasleduje >
+					token->type = TKN_neq;
+					break;
+				}
+				else if(c == '=') { 				//ak za < nasleduje = -> '<='
+					token->type = TKN_leq;
+					break;
+				}
+				else {
+					token->type = TKN_less;
+					break;
+				}
 
 
+			case TKN_gt : // to iste ako TKN_less, ale naopak - neq ...	
 
-			case VACSITKO : // to iste ako mensitko, ale naopak ...	
-				// -------- TODO --------		
-				break; //len pre prelozitelnost :,D
+				if(c = fgetc(SUBOR) == '=') {		//ak po > nasleduje =
+					token->type = TKN_geq;
+					break;
+				}
+				else {				//ak po > nasleduje hocico ine
+					token->type = TKN_gt;
+					break;
+				}
+
+			default :
+				break;
 				
 
 		}
 
+		break; //ak prejde cyklus while bez continue, tak skonci
+
 	}
 
 	if(feof(SUBOR)) {			//ak nacitany znak bol EOF, token bude EOF...
-		stav = ZN_EOF;
+		token->type = TKN_EOF;
 	}
 
+
+	free(str_pomocny);
+
+	return token;
 	/* Zvysok TODO */
 
 }
 
 int main(){
+
+	Ttoken *tok = malloc(sizeof(Ttoken));
+	if(tok == NULL) {
+		fprintf(stderr, "Nepodarilo sa naalokovat pamat\n");
+		exit(1);
+	}
+
+	tok = get_token(tok);
 
 	/* bude odstranene, je tu len z dovodu nesorsich mojich testov */
 }
