@@ -3,7 +3,7 @@
 #include<stdbool.h>
 
 /* TODO zmazat */
-#include "parser.h"
+#include "gettoken.h"
 
 
 #include"error.h"
@@ -11,6 +11,7 @@
 
 #ifndef PRECEDSA_H
 #define PRECEDSA_H
+
 
 typedef struct tdElem
 {

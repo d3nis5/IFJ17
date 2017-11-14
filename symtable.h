@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include "error.h"
 
 #ifndef SYMTABLE_H
 #define SYMTABLE_H
@@ -14,6 +14,8 @@
  * SYMTB_itemptr_l 		polozka lokalnej tabulky symbolov, su v nej iba premenne
  */ 
 
+
+extern int err_code;
 
 typedef struct local_symtable_item
 {
@@ -40,7 +42,7 @@ typedef struct global_symtable_item
 	bool fc_defined;					/* bola funkcia definovana? */ 
 	char ret_type;						/* datovy typ premennej {'i', 'd', 's'} */
 	int par_count;						/* pocet parametrov funkcie*/
-	char parameters[MAX_PAR];			/* parametre funkcie */
+	char parameters[MAX_PAR];			/* parametre funkcie, retazec ukonceny 0 */
 	SYMTB_itemptr_l local_symtb;		/* ukazatel do lokalnej tabulky symbolov */
 	struct global_symtable_item *lptr;	/* ukazatel na lavy podstrom */
 	struct global_symtable_item *rptr;	/* ukazatel na pravy podstrom */
@@ -62,8 +64,8 @@ SYMTB_itemptr_l LST_search(SYMTB_itemptr_l RootPtr, char *name);
 
 /* Prida premennu do tabulky symbolov 
  * Pri chybe alokacie vracia NULL a v err_code je kod chyby
- * !!!!!!!!!!!Pri uspechu vracia tiez NULL ale err_code je nezmenene!!!!!!!!!!
- * Ak sa v tabulke uz nachadza premenna s tymto menom vracia sa ukazatel na nu
+ * Pri uspechu vracia ukazatel na novu polozku
+ * Ak sa v tabulke uz nachadza premenna s tymto menom vracia sa ukazatel na nu a err_code = -1
  */
 SYMTB_itemptr_l LST_add_var(SYMTB_itemptr_l *RootPtr, char *name, bool declared, bool defined, char type);
 
@@ -72,6 +74,10 @@ void LST_delete_tab(SYMTB_itemptr_l *);
 
 
 /* ----------FUNKCIE PRE PRACU S GLOBALNOU TABULKOU SYMBOLOV---------- */
+
+/* TODO zmazat */
+void Print_tree_g(SYMTB_itemptr_g TempTree);
+
 
 /* Inicializacia globalnej tabulky symbolov */
 void GST_init(SYMTB_itemptr_g *);
@@ -83,8 +89,8 @@ SYMTB_itemptr_g GST_search(SYMTB_itemptr_g RootPtr, char *name);
 
 /* Prida funkciu do tabulky symbolov 
  * Pri chybe alokacie vracia NULL a v err_code je kod chyby
- * !!!!!!!!!!!Pri uspechu vracia tiez NULL ale err_code je nezmenene!!!!!!!!!!
- * Ak sa v tabulke uz nachadza funkcia s tymto menom vracia sa ukazatel na nu
+ * Pri uspechu vracia ukazatel na novu polozku
+ * Ak sa v tabulke uz nachadza funkcia s tymto menom vracia sa ukazatel na nu a err_code = -1
  */
 SYMTB_itemptr_g GST_add_function(SYMTB_itemptr_g *RootPtr, char *name, bool declared, bool defined, char type, char *params);
 

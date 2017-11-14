@@ -1,84 +1,17 @@
 #include "parser.h"
 
+
 int err_code = 0;
+SYMTB_itemptr_g global_symtb;
 
 Ttoken *token;
 
-// TODO viac znakov EOL za sebou, return v maine nemoze byt
-
-Ttoken *get_token()
-{
-	static int i = -1;
-	Ttoken *pole[30];
-
-	i++;
-
-	Ttoken *token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = KWD_scope;
-	pole[0] = token;
-
-	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_EOL;
-	pole[1] = token;
-
-	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = KWD_if;
-	pole[2] = token;
-
-	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_int;
-	pole[3] = token;
-
-	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = KWD_then;
-	pole[4] = token;
-
-	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_EOL;
-	pole[5] = token;
-
-	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = KWD_else;
-	pole[6] = token;
-
-	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_EOL;
-	pole[7] = token;
-
-	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = KWD_end;
-	pole[8] = token;
-
-	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = KWD_if;
-	pole[9] = token;
-
-	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_EOL;
-	pole[10] = token;
-
-	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = KWD_end;
-	pole[11] = token;
-
-	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = KWD_scope;
-	pole[12] = token;
-
-	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_EOL;
-	pole[13] = token;	
-
-	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_EOF;
-	pole[14] = token;
-/*
-	printf("pole[%d] = %d\n", i, pole[i]->type );*/
-	return pole[i];
-}
-
-
-
+/* TODO viac znakov EOL za sebou, return v maine nemoze byt,
+ * skontrolovat ci boli vsetky deklarovane funkcie aj definovane 
+ * funkcia musi byt deklarovana MAX raz, deklaracia musi byt pred definiciou
+ * implicitna inicializacia premennych
+ * kazda premenna musi byt definovana
+ */
 
 
 bool r_program()
@@ -234,6 +167,9 @@ bool r_fc_dec()
 
 bool r_declaration()
 {
+	SYMTB_itemptr_g function = NULL;	
+	char *fc_name = NULL;
+
 	if ( token->type == KWD_declare )
 	{
 		/* Simulacia pravidla '5' */
@@ -253,6 +189,33 @@ bool r_declaration()
 			//err_code = SYNTAX_ERR;
 			return false;
 		}
+		
+		fc_name = token->attribute.string;
+		function = GST_add_function(&global_symtb, fc_name, true, false, 0, "");
+
+		if( function == NULL )
+		{
+			/* Chyba alokacie */
+			return false;
+		}
+		/* Funkcia s rovnakym menom uz je v tabulke symbolov */
+		else if (err_code == -1)
+		{
+			if (function->fc_declared == true)
+			{
+				/* Opatovne deklarovanie funkcie */
+				fprintf(stderr,"Opatovne deklarovanie funkcie\n");
+				err_code = SEMANT_ERR;
+				return false;
+			}
+			else
+			{
+				/* Definicia funkcie predchadza jej deklaraciu */
+				fprintf(stderr, "Definicia funkcie predchadza jej deklaraciu\n");
+				err_code = SEMANT_ERR;
+				return false;
+			}
+		}
 
 		token = get_token();
 
@@ -264,7 +227,7 @@ bool r_declaration()
 
 		token = get_token();
 		
-		if ( r_item_list() == false )	
+		if ( r_item_list(function) == false )	
 		{
 			//err_code = SYNTAX_ERR;
 			return false;
@@ -275,7 +238,6 @@ bool r_declaration()
 			//err_code = SYNTAX_ERR;
 			return false;
 		}
-		
 		token = get_token();
 
 		if ( token->type != KWD_as )
@@ -283,14 +245,17 @@ bool r_declaration()
 			//err_code = SYNTAX_ERR;
 			return false;
 		}
-
 		token = get_token();
+
+		Ttoken *tmp = token;
 
 		if ( r_type() == false )
 		{
 			//err_code = SYNTAX_ERR;
 			return false;
 		}
+		/* Pridanie navratoveho typu */
+		function->ret_type = type2char(tmp);
 	}
 	else
 	{
@@ -308,6 +273,10 @@ bool r_definition()
 {
 	/* Simulacia pravidla '6' */	
 
+	SYMTB_itemptr_g function = NULL;
+	char *fc_name = NULL;
+	char *params = NULL;
+
 	if ( token->type != KWD_function  )
 	{
 		//err_code = SYNTAX_ERR;
@@ -322,25 +291,59 @@ bool r_definition()
 		return false;
 	}
 
+	fc_name = token->attribute.string;
+	function = GST_add_function(&global_symtb, fc_name, false, true, 0, "");
+
+	if ( function == NULL )
+	{
+		/* Chyba alokacie */
+		return false;
+	}
+	/* Funkcia s rovnakym menom uz je v tabulke symbolov */
+	else if (err_code == -1)
+	{
+		if (function->fc_defined == true)
+		{
+			/* Opatovne definovanie funkcie */
+			fprintf(stderr,"Opatovne definovanie funkcie\n");
+			err_code = SEMANT_ERR;
+			return false;
+		}
+		else
+		{
+			/* Uz bola deklarovana ale nie definovana */
+
+			params = malloc((function->par_count+1) * sizeof(char));
+			strcpy(params,function->parameters);
+			function->par_count = 0;
+		}
+	}
+
 	token = get_token();
 
 	if ( token->type != TKN_leftpar )
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
+		if ( params != NULL )
+			free(params);
 		return false;
 	}
 
 	token = get_token();
 
-	if ( r_item_list() == false )
+	if ( r_item_list(function) == false )
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
+		if ( params != NULL )
+			free(params);
 		return false;
 	}
 
 	if ( token->type != TKN_rightpar )
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
+		if ( params != NULL )
+			free(params);
 		return false;
 	}
 
@@ -348,21 +351,48 @@ bool r_definition()
 
 	if ( token->type != KWD_as )
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
+		if ( params != NULL )
+			free(params);
 		return false;
 	}
 
 	token = get_token();
 
+	Ttoken *tmp = token;
+
 	if ( r_type() == false )
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
+		if ( params != NULL )
+			free(params);
 		return false;
+	}
+
+	if ( function->fc_declared == false)
+	{
+		/* Pridanie navratoveho typu */
+		function->ret_type = type2char(tmp);
+	}
+	else
+	{
+		/*  Kontrola ci sa zhoduju navratove typy deklaracie a definicie */
+		if ( function->ret_type != type2char(tmp) )
+		{
+			err_code = SEMANT_ERR;
+			fprintf(stderr, "Navratovy typ funkcie v deklaracii a definicii sa nezhoduje\n");
+			if( params != NULL )
+				free(params);
+			
+			return false;
+		}
 	}
 
 	if ( token->type != TKN_EOL )
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
+		if ( params != NULL )
+			free(params);
 		return false;
 	}
 
@@ -370,13 +400,17 @@ bool r_definition()
 
 	if ( r_stat_list == false )
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
+		if ( params != NULL )
+			free(params);
 		return false;
 	}
 
 	if ( token->type != KWD_end )
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
+		if ( params != NULL )
+			free(params);
 		return false;
 	}
 
@@ -384,12 +418,30 @@ bool r_definition()
 
 	if ( token->type != KWD_function )
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
+		if ( params != NULL )
+			free(params);
 		return false;
 	}
 	
 	token = get_token();
 
+	if ( params != NULL )
+	{
+		if ( strcmp(params, function->parameters) != 0 )
+		{
+			/* Typy parametrov v deklaracii a definicii sa nezhoduju */
+			fprintf(stderr, "Typy parametrov v deklaracii a definicii sa nezhoduju\n");
+			err_code = SEMANT_ERR;
+			free(params);
+			return false;
+		}
+		else
+		{
+			free(params);
+		}
+	}
+	
 	return true;
 }
 /* KONIEC r_definition() */
@@ -405,7 +457,7 @@ bool r_var_declaration()
 
 		if ( token->type != TKN_id )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -413,7 +465,7 @@ bool r_var_declaration()
 
 		if ( token->type != KWD_as )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -421,19 +473,19 @@ bool r_var_declaration()
 
 		if ( r_type() == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
 		if ( r_var_definition() == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 	}
 	else
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
 		return false;
 	}
 
@@ -538,7 +590,7 @@ bool r_expr_list()
 /* KONIEC r_expr_list() */
 
 
-bool r_item_list()
+bool r_item_list(SYMTB_itemptr_g function)
 {
 	if ( token->type == TKN_rightpar)
 	{
@@ -561,13 +613,17 @@ bool r_item_list()
 
 		token = get_token();
 
+		Ttoken *param = token;
+
 		if ( r_type() == false )
 		{
 			//err_code = SYNTAX_ERR;
 			return false;
 		}
+		
+		GST_add_par(function, type2char(param));
 
-		if ( r_item2_list() == false )
+		if ( r_item2_list(function) == false )
 		{
 			//err_code = SYNTAX_ERR;
 			return false;
@@ -584,8 +640,9 @@ bool r_item_list()
 /* KONIEC r_item_list() */
 
 
-bool r_item2_list()
+bool r_item2_list(SYMTB_itemptr_g function)
 {
+	
 	if ( token->type == TKN_rightpar)
 	{
 		/* Simulacia pravidla '14' */
@@ -598,7 +655,6 @@ bool r_item2_list()
 		/* Simulacia pravidla '15' */
 
 		token = get_token();
-
 		if ( token->type != TKN_id )
 		{
 			//err_code = SYNTAX_ERR;
@@ -615,13 +671,17 @@ bool r_item2_list()
 
 		token = get_token();
 		
+		Ttoken *param = token;
+
 		if ( r_type() == false )
 		{
 			//err_code = SYNTAX_ERR;
 			return false;
 		}
 
-		if ( r_item2_list() == false )
+		GST_add_par(function, type2char(param));
+
+		if ( r_item2_list(function) == false )
 		{
 			//err_code = SYNTAX_ERR;
 			return false;
@@ -1091,16 +1151,38 @@ bool r_type()
 	}
 }
 
+
+char type2char(Ttoken *token)
+{
+	if (token->type == KWD_integer)
+		return 'i';
+	else if (token->type == KWD_double)
+		return 'd';
+	else 
+		return 's';
+}
+
 /* KONIEC r_type */
 
 int main()
 {
+	global_symtb = NULL;
+	
+	GST_add_function(&global_symtb, "hello", true, false, 's', "si");	
+
 	token = get_token();
 	
-	if(r_program() == true)
-		printf("SYNTAX OK\n");
+	if(r_definition() == true)
+		printf("OK\n");
 	else
-		printf("SYNTAX ERROR\n");
+	{
+		if (err_code == 0)
+			printf("SYNTAX ERROR\n");
+		else if (err_code = SEMANT_ERR)
+			printf("SEMANTIC ERROR\n");
+	}
+
+	Print_tree_g(global_symtb);
 
 	return 0;
 }

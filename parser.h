@@ -6,12 +6,16 @@
 #include "symtable.h"
 #include "error.h"
 
-#ifndef PARSER_H
-#define PARSER_H
 
 /* TODO zmazat */
-Ttoken *get_token();
+#include "gettoken.h"
 
+
+
+
+#ifndef PARSER_H
+#define PARSER_H
+int err_code;
 
 /* Pravidlo pre <Program> */
 bool r_program();
@@ -54,12 +58,12 @@ bool r_expr_list();
 /* Pravidlo pre <ItemList> 
  * Zoznam parametrov pri deklarovani/ definicii funcii
  */
-bool r_item_list();
+bool r_item_list(SYMTB_itemptr_g);
 
 /* Pravidlo pre <Item2List> 
  * Pomocne pravidlo pre pravidlo <ItemList>
  */
-bool r_item2_list();
+bool r_item2_list(SYMTB_itemptr_g);
 
 /* Pravidlo pre <ParList> 
  * Zoznam parametrov funkcie pri jej volani
@@ -95,5 +99,8 @@ bool r_type();
  * Typy parametrov pri volani funkcie
  */
 bool r_par_par();
+
+/* Vrati datovy typ tokenu ako 1 znak {'i', 's', 'd'} */
+char type2char(Ttoken *token);
 
 #endif /* PARSER_H */

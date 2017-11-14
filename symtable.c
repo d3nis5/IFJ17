@@ -60,7 +60,7 @@ void Print_tree2_g(SYMTB_itemptr_g TempTree, char* sufix, char fromdir)
 	else
 	   suf2 = strcat(suf2, "   ");
 	Print_tree2_g(TempTree->rptr, suf2, 'R');
-        printf("%s  +-[%s(%s)]\n", sufix, TempTree->function_name,TempTree->parameters);
+        printf("%s  +-[%s(%s)%c]\n", sufix, TempTree->function_name,TempTree->parameters,TempTree->ret_type);
 	strcpy(suf2, sufix);
         if (fromdir == 'R')
 	   suf2 = strcat(suf2, "  |");	
@@ -131,7 +131,7 @@ SYMTB_itemptr_l LST_add_var(SYMTB_itemptr_l *RootPtr, char *name, bool declared,
 		SYMTB_itemptr_l new_var = (SYMTB_itemptr_l) malloc(sizeof(struct local_symtable_item));
 		if ( new_var == NULL )
 		{
-			//err_code = COMPILER_ERR; 
+			err_code = COMPILER_ERR; 
 			return NULL;
 		}
 
@@ -142,7 +142,7 @@ SYMTB_itemptr_l LST_add_var(SYMTB_itemptr_l *RootPtr, char *name, bool declared,
 		new_var->lptr = NULL;
 		new_var->rptr = NULL;
 		*RootPtr = new_var;
-		return NULL;
+		return *RootPtr;
 	}
 	else
 	{
@@ -156,6 +156,7 @@ SYMTB_itemptr_l LST_add_var(SYMTB_itemptr_l *RootPtr, char *name, bool declared,
 		}
 		else
 		{
+			err_code = -1;
 			return (*RootPtr);
 		}
 	}
@@ -223,7 +224,7 @@ SYMTB_itemptr_g GST_add_function(SYMTB_itemptr_g *RootPtr, char *name, bool decl
 		SYMTB_itemptr_g new_function = (SYMTB_itemptr_g) malloc(sizeof(struct global_symtable_item));
 		if ( new_function == NULL )
 		{
-			//err_code = COMPILER_ERR; 
+			err_code = COMPILER_ERR; 
 			return NULL;
 		}
 
@@ -236,7 +237,11 @@ SYMTB_itemptr_g GST_add_function(SYMTB_itemptr_g *RootPtr, char *name, bool decl
 		int i = 0;
 		while(params[i] != 0)
 		{
-			GST_add_par(new_function, params[i]);
+			if(GST_add_par(new_function, params[i]) == false)
+			{
+				err_code = COMPILER_ERR;
+				return false;
+			}
 			i++;
 		}
 
@@ -244,7 +249,7 @@ SYMTB_itemptr_g GST_add_function(SYMTB_itemptr_g *RootPtr, char *name, bool decl
 		new_function->lptr = NULL;
 		new_function->rptr = NULL;
 		*RootPtr = new_function;
-		return NULL;
+		return *RootPtr;
 	}
 	else
 	{
@@ -258,6 +263,7 @@ SYMTB_itemptr_g GST_add_function(SYMTB_itemptr_g *RootPtr, char *name, bool decl
 		}
 		else
 		{
+			err_code = -1;
 			return (*RootPtr);
 		}
 	}
@@ -265,7 +271,7 @@ SYMTB_itemptr_g GST_add_function(SYMTB_itemptr_g *RootPtr, char *name, bool decl
 
 bool GST_add_par(SYMTB_itemptr_g function, char type)
 {
-	if ( function->par_count >= MAX_PAR )
+	if ( function->par_count >= (MAX_PAR-1) )
 	{
 		return false;
 	}
@@ -273,14 +279,17 @@ bool GST_add_par(SYMTB_itemptr_g function, char type)
 	{
 		function->parameters[function->par_count] = type;
 		function->par_count++;
+		function->parameters[function->par_count] = 0;
 
-	function->parameters[function->par_count] = 0;	/* TODO zmazat, len pre vypis */
+
 	}
 	return true;
 }
 
 bool GST_add_builtin(SYMTB_itemptr_g *table)
 {
+	/* TODO test na uspech */
+
 	/* Length(s As String) As Integer */
 
 	char *name = (char*) malloc(7 * sizeof(char));
@@ -331,7 +340,8 @@ void GST_delete_tab(SYMTB_itemptr_g *RootPtr)
 
 }
 
-/* -------------------------------TEST---------------------------------- 
+#if 0
+/* -------------------------------TEST----------------------------------  */
 int main()
 {	
 	SYMTB_itemptr_g root;
@@ -340,7 +350,7 @@ int main()
 	
 	GST_add_builtin(&root);
 	
-	GST_add_function(&root, "hello", false, false, 'i', "isdi");
+/*	GST_add_function(&root, "hello", false, false, 'i', "isdi");
 	GST_add_par(root, 'i');
 	GST_add_par(root, 's');
 	GST_add_par(root, 'd');
@@ -372,10 +382,14 @@ int main()
 		printf("ERROR\n");
 		printf("%s\n", temp->function_name);
 	}
-	
+*/	
+	Print_tree_g(root);
+	GST_add_function(&root, "length", false, false, 's', "ssssssss");
+	printf("\n\nerr_code = %d\n\n", err_code);
 	Print_tree_g(root);
 	GST_delete_tab(&root);
-
+	Print_tree_g(root);
+/*
 	temp = GST_search(root, "a");
 	if(temp == NULL)
 		printf("not found\n");
@@ -394,8 +408,8 @@ int main()
 		printf("not found\n");
 	else
 		printf("found : %s\n", temp->function_name);
-	Print_tree_g(root);
+	Print_tree_g(root);*/
 
 	return 0;
-}*/
-
+}
+#endif
