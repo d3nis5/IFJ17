@@ -29,7 +29,7 @@ char* to_lower_case(char* string) {
 }
 
 
-Ttoken* get_token(Ttoken *token) { 					//nemoze byt void ??????
+Ttoken* get_token(Ttoken *token) { 					//nemoze byt void ?????? nie
 	
 	TKN_type stav; //aktualny stav
 
@@ -125,11 +125,16 @@ Ttoken* get_token(Ttoken *token) { 					//nemoze byt void ??????
 			case TKN_id :
 				index = 0;
 				while(isdigit(c) || isalpha(c) || (c == '_')) {
+					str_pomocny[index] = c;
 					//token->attribute.st_ptr[index] = c; //ako sa pracuje so symtable ???
+					c = fgetc(SUBOR);
 					index++;
 				}
+				str_pomocny[index] = '\0';		//ukoncenie retazca
+
 				token->type = stav; 		 //priradi "stav", teda typ tokenu do tokenu
-				//token->attribute.st_ptr = token->attribute.st_ptr; //ulozi hodnotu tokenu
+				token->attribute.string = str_pomocny; //ulozi hodnotu tokenu
+				printf("ID je : %s \n", token->attribute.string);
 				break;
 
 
@@ -243,19 +248,6 @@ Ttoken* get_token(Ttoken *token) { 					//nemoze byt void ??????
 
 				break;
 
-/*				c = fgetc(SUBOR); 				//nacitaj prvy znak po bodke*/
-
-/*				if(!(isdigit(c))) {*/
-/*					fprintf(stderr, "Lexikalna chyba double ma tvar num.num\n");*/
-/*					exit(1);*/
-/*				}*/
-/*				else {*/
-/*					str_pomocny[index] = c;		//zapis cislo do stringu, ktory ma zatial tvar "int."*/
-/*				}*/
-/*				break;*/
-/*				*/
-	
-				// -------- TODO --------
 
 
 			case TKN_str :								//TODO treba doplnit re-alloc ak dojde pamat
