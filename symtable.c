@@ -18,7 +18,18 @@ void Print_tree2_l(SYMTB_itemptr_l TempTree, char* sufix, char fromdir)
 	else
 	   suf2 = strcat(suf2, "   ");
 	Print_tree2_l(TempTree->rptr, suf2, 'R');
-        printf("%s  +-[%s]\n", sufix, TempTree->var_name);
+	switch(TempTree->type)
+	{
+		case 'i' :
+        	printf("%s  +-[%s as %c = %d] \n", sufix, TempTree->var_name,TempTree->type, TempTree->value.int_value);
+			break;
+		case 'd' :
+        	printf("%s  +-[%s as %c = %g] \n", sufix, TempTree->var_name,TempTree->type, TempTree->value.dbl_value);
+			break;
+		case 's' :
+        	printf("%s  +-[%s as %c = %s] \n", sufix, TempTree->var_name,TempTree->type, TempTree->value.str_value);
+			break;
+	}
 	strcpy(suf2, sufix);
         if (fromdir == 'R')
 	   suf2 = strcat(suf2, "  |");	
@@ -124,7 +135,7 @@ SYMTB_itemptr_l LST_search(SYMTB_itemptr_l RootPtr, char *name)
 }
 
 
-SYMTB_itemptr_l LST_add_var(SYMTB_itemptr_l *RootPtr, char *name, bool declared, bool defined, char type)
+SYMTB_itemptr_l LST_add_var(SYMTB_itemptr_l *RootPtr, char *name, char type)
 {
 	if ( *RootPtr == NULL )
 	{
@@ -136,8 +147,6 @@ SYMTB_itemptr_l LST_add_var(SYMTB_itemptr_l *RootPtr, char *name, bool declared,
 		}
 
 		new_var->var_name = name;
-		new_var->var_declared = declared;
-		new_var->var_defined = defined;
 		new_var->type = type;
 		new_var->lptr = NULL;
 		new_var->rptr = NULL;
@@ -148,11 +157,11 @@ SYMTB_itemptr_l LST_add_var(SYMTB_itemptr_l *RootPtr, char *name, bool declared,
 	{
 		if ( strcmp(name, (*RootPtr)->var_name) < 0 )
 		{
-			LST_add_var(&((*RootPtr)->lptr), name, declared, defined, type);
+			LST_add_var(&((*RootPtr)->lptr), name, type);
 		}
 		else if ( strcmp(name, (*RootPtr)->var_name) > 0 )
 		{
-			LST_add_var(&((*RootPtr)->rptr), name, declared, defined, type);
+			LST_add_var(&((*RootPtr)->rptr), name, type);
 		}
 		else
 		{

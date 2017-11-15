@@ -2,9 +2,11 @@
 
 
 int err_code = 0;
-SYMTB_itemptr_g global_symtb;
+SYMTB_itemptr_g global_symtb = NULL;
 
 Ttoken *token;
+
+bool in_scope = false;
 
 /* TODO viac znakov EOL za sebou, return v maine nemoze byt,
  * skontrolovat ci boli vsetky deklarovane funkcie aj definovane 
@@ -24,35 +26,49 @@ bool r_program()
 
 		if ( r_fc_dec() == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
 		if ( token->type != KWD_scope )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 	
+		/* Kontrola ci vsetky deklarovane funkcie boli aj definovane */
+		
+		if ( check_functions(global_symtb) == false )
+		{
+			err_code = SEMANT_ERR;
+			fprintf(stderr, "Nie vsetky deklarovane funkcie boli definovane\n");
+			return false;
+		}
+		in_scope = true;
+
 		token = get_token();
 
 		if ( token->type != TKN_EOL )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
 		token = get_token();
 
-		if ( r_stat_list() == false )
+		/* TODO */
+
+		SYMTB_itemptr_l scope_symtb = NULL;
+
+		if ( r_stat_list(&scope_symtb) == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
 		if ( token->type != KWD_end )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -61,7 +77,7 @@ bool r_program()
 	
 		if ( token->type != KWD_scope )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 		
@@ -69,7 +85,7 @@ bool r_program()
 
 		if ( token->type != TKN_EOL )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -77,14 +93,14 @@ bool r_program()
 
 		if ( token->type != TKN_EOF )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 				
 	}
 	else
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
 		return false;
 	}
 
@@ -101,13 +117,13 @@ bool r_fc_dec()
 		
 		if ( r_declaration() == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
 		if ( token->type != TKN_EOL )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 	
@@ -115,7 +131,7 @@ bool r_fc_dec()
 
 		if ( r_fc_dec() == false )	
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -126,13 +142,13 @@ bool r_fc_dec()
 
 		if ( r_definition() == false )		
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 		
 		if ( token->type != TKN_EOL )	
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -140,7 +156,7 @@ bool r_fc_dec()
 
 		if ( r_fc_dec() == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -157,7 +173,7 @@ bool r_fc_dec()
 	{
 		/* Syntakticka chyba */
 
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
 		return false;
 	}
 	return true;
@@ -178,7 +194,7 @@ bool r_declaration()
 
 		if ( token->type != KWD_function )	
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -186,7 +202,7 @@ bool r_declaration()
 
 		if ( token->type != TKN_id )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 		
@@ -221,7 +237,7 @@ bool r_declaration()
 
 		if ( token->type != TKN_leftpar )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -229,20 +245,20 @@ bool r_declaration()
 		
 		if ( r_item_list(function) == false )	
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
 		if ( token->type != TKN_rightpar )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 		token = get_token();
 
 		if ( token->type != KWD_as )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 		token = get_token();
@@ -251,7 +267,7 @@ bool r_declaration()
 
 		if ( r_type() == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 		/* Pridanie navratoveho typu */
@@ -260,7 +276,7 @@ bool r_declaration()
 	else
 	{
 		/* Syntakticka chyba */
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
 		return false;
 	}
 
@@ -279,7 +295,7 @@ bool r_definition()
 
 	if ( token->type != KWD_function  )
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
 		return false;
 	}
 
@@ -287,7 +303,7 @@ bool r_definition()
 
 	if ( token->type != TKN_id )
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
 		return false;
 	}
 
@@ -398,7 +414,7 @@ bool r_definition()
 
 	token = get_token();
 
-	if ( r_stat_list == false )
+	if ( r_stat_list(&(function->local_symtb)) == false )
 	{
 		err_code = SYNTAX_ERR;
 		if ( params != NULL )
@@ -447,8 +463,11 @@ bool r_definition()
 /* KONIEC r_definition() */
 
 
-bool r_var_declaration()
+bool r_var_declaration(SYMTB_itemptr_l *local_symtb)
 {
+	SYMTB_itemptr_l var = NULL;
+	char *var_name = NULL;
+
 	if ( token->type == KWD_dim )
 	{
 		/* Simulacia pravidla '7' */
@@ -461,8 +480,33 @@ bool r_var_declaration()
 			return false;
 		}
 
-		token = get_token();
+		var_name = token->attribute.string;
+		if ( GST_search(global_symtb, var_name) != NULL )
+		{
+			/* Uz existuje funkcia s tymto menom */
+			fprintf(stderr, "Uz existuje funkcia s nazvom ktorym chete pomenovat premennu\n");
+			err_code = SEMANT_ERR;
+			return false;
 
+		}	
+		
+		var = LST_add_var(local_symtb, var_name, 0);
+
+		if ( var == NULL )
+		{
+			/* Chyba alokacie */
+			fprintf(stderr, "Chyba alokacie pamati\n");
+			return false;
+		}
+		else if ( err_code == -1 )
+		{
+			err_code = SEMANT_ERR;
+			fprintf(stderr, "Opatovna definicia premennej\n");
+			return false;	
+		}
+
+		token = get_token();
+		
 		if ( token->type != KWD_as )
 		{
 			err_code = SYNTAX_ERR;
@@ -471,13 +515,32 @@ bool r_var_declaration()
 
 		token = get_token();
 
+		Ttoken *tmp = token;
+
 		if ( r_type() == false )
 		{
 			err_code = SYNTAX_ERR;
 			return false;
 		}
 
-		if ( r_var_definition() == false )
+		/* Pridanie typu premennej a implicitna inicializacia */
+
+		var->type = type2char(tmp);
+
+		switch(var->type)
+		{
+			case 'i' :
+				var->value.int_value = 0;
+				break;
+			case 'd' :
+				var->value.dbl_value = 0.0;
+				break;
+			case 's' :
+				var->value.str_value = malloc(sizeof(char));
+				strcpy(var->value.str_value, "");
+				break;
+		}
+		if ( r_var_definition(local_symtb) == false )
 		{
 			err_code = SYNTAX_ERR;
 			return false;
@@ -494,16 +557,17 @@ bool r_var_declaration()
 /* KONIEC r_var_declaration() */
 
 
-bool r_var_definition()
+bool r_var_definition(SYMTB_itemptr_l *local_symtb)
 {
+
+	/* TODO priradit hodnotu a skontrolovat typy oboch stran */
+
 	if ( token->type == TKN_eq )
 	{
 		/* Simulacia pravidla '9' */
 	
-		if ( vyhodnot_vyraz(&token) != 0) 
+		if ( (err_code = vyhodnot_vyraz(&token)) != 0) 
 		{
-			/* TODO err code */
-			//err_code = SYNTAX_ERR;
 			return false;
 		}
 	}
@@ -516,7 +580,7 @@ bool r_var_definition()
 	}
 	else
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
 		return false;
 	}
 
@@ -535,7 +599,7 @@ bool r_assign() 		/* TODO otestovat */
 
 		if ( token->type != TKN_eq )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -543,13 +607,13 @@ bool r_assign() 		/* TODO otestovat */
 
 		if ( r_rhs() == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 	}
 	else
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
 		return false;
 	}
 	return true;
@@ -565,10 +629,8 @@ bool r_expr_list()
 	{
 		/* Simulacia pravidla '10' */
 	
-		if ( vyhodnot_vyraz(&token) != 0 )
+		if ( (err_code = vyhodnot_vyraz(&token)) != 0 )
 		{
-			/* TODO err_code */
-			//err_code = SYNTAX_ERR;
 			return false;
 		}		
 	}
@@ -581,7 +643,7 @@ bool r_expr_list()
 	}
 	else
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
 		return false;
 	}
 
@@ -607,7 +669,7 @@ bool r_item_list(SYMTB_itemptr_g function)
 
 		if ( token->type != KWD_as )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -617,7 +679,7 @@ bool r_item_list(SYMTB_itemptr_g function)
 
 		if ( r_type() == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 		
@@ -625,13 +687,13 @@ bool r_item_list(SYMTB_itemptr_g function)
 
 		if ( r_item2_list(function) == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 	}
 	else 
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
 		return false;
 	}
 
@@ -657,7 +719,7 @@ bool r_item2_list(SYMTB_itemptr_g function)
 		token = get_token();
 		if ( token->type != TKN_id )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -665,7 +727,7 @@ bool r_item2_list(SYMTB_itemptr_g function)
 
 		if ( token->type != KWD_as )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -675,7 +737,7 @@ bool r_item2_list(SYMTB_itemptr_g function)
 
 		if ( r_type() == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -683,13 +745,13 @@ bool r_item2_list(SYMTB_itemptr_g function)
 
 		if ( r_item2_list(function) == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 	}
 	else
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
 		return false;
 	}
 
@@ -713,13 +775,13 @@ bool r_par_list()
 
 		if ( r_par2_list() == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 	}
 	else
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
 		return false;
 	}
 
@@ -760,7 +822,7 @@ bool r_par_par()
 	}
 	else
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
 		return false;
 	}
 	return true;
@@ -785,19 +847,19 @@ bool r_par2_list()
 
 		if ( r_par_par() == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
 		if ( r_par2_list() == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 	}
 	else
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
 		return false;
 	}
 
@@ -810,7 +872,10 @@ bool r_rhs()
 {
 	if ( token->type == TKN_id )
 	{
-		/* TODO Rozhodnut ci je to premenna alebo volanie funkcie */
+		/* TODO Rozhodnut ci je to premenna alebo volanie funkcie 
+		 * skontrolovat typy parametrov vo volani funkcie
+		 */
+		
 	}
 	else if ( (token->type == TKN_leftpar) || ( token->type == TKN_int ) ||
 	(token->type == TKN_id ) || ( token->type == TKN_dbl ) || 
@@ -818,16 +883,14 @@ bool r_rhs()
 	{
 		/* Simulacia pravidla '20' */
 
-		if ( vyhodnot_vyraz(&token) != 0 )
+		if ( (err_code = vyhodnot_vyraz(&token) != 0 ))
 		{
-			/* TODO err_code */
-			//err_code = SYNTAX_ERR;
 			return false;
 		}
 	}
 	else
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
 		return false;
 	}
 	return true;
@@ -835,15 +898,15 @@ bool r_rhs()
 /* KONIEC r_rhs() */
 
 
-bool r_stat()		/* TODO otestovat */
+bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 {
 	if ( token->type == KWD_dim )
 	{
 		/* Simulacia pravidla '28' */
 
-		if ( r_var_declaration() == false )
+		if ( r_var_declaration(local_symtb) == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 	}
@@ -853,7 +916,7 @@ bool r_stat()		/* TODO otestovat */
 
 		if ( r_assign() == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}	
 	}
@@ -865,18 +928,10 @@ bool r_stat()		/* TODO otestovat */
 
 		if ( token->type != TKN_id )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 	
-		token = get_token();
-
-		if ( token->type != TKN_EOL )
-		{
-			//err_code = SYNTAX_ERR;
-			return false;
-		}
-
 		token = get_token();
 	}
 	else if ( token->type == KWD_print )
@@ -885,16 +940,14 @@ bool r_stat()		/* TODO otestovat */
 		
 		token = get_token();
 	
-		if ( vyhodnot_vyraz(&token) != 0 )
+		if ( (err_code = vyhodnot_vyraz(&token)) != 0 )
 		{
-			/* TODO err_code */
-			//err_code = SYNTAX_ERR;
 			return false;
 		}
 
 		if ( token->type != TKN_smcolon )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -902,7 +955,7 @@ bool r_stat()		/* TODO otestovat */
 
 		if ( r_expr_list() == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 	}
@@ -912,17 +965,15 @@ bool r_stat()		/* TODO otestovat */
 
 		token = get_token();
 
-		if ( vyhodnot_vyraz(&token) != 0 )
+		if ( (err_code = vyhodnot_vyraz(&token)) != 0 )
 		{
-			/* TODO err_code */
-			//err_code = SYNTAX_ERR;
 			return false;
 		}
 
 		
 		if ( token->type != KWD_then )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -930,42 +981,42 @@ bool r_stat()		/* TODO otestovat */
 
 		if ( token->type != TKN_EOL )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 		
 		token = get_token();
 
-		if ( r_stat_list() == false )
+		if ( r_stat_list(local_symtb) == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
 		if ( token->type != KWD_else )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 		token = get_token();
 
 		if ( token->type != TKN_EOL ) 
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
 		token = get_token();
 
-		if ( r_stat_list() == false )
+		if ( r_stat_list(local_symtb) == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 			
 		if ( token->type != KWD_end )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -973,7 +1024,7 @@ bool r_stat()		/* TODO otestovat */
 
 		if ( token->type != KWD_if)
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 		token = get_token();
@@ -986,7 +1037,7 @@ bool r_stat()		/* TODO otestovat */
 
 		if ( token->type != KWD_while )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 		
@@ -995,27 +1046,27 @@ bool r_stat()		/* TODO otestovat */
 		if ( vyhodnot_vyraz(&token) != 0 )
 		{
 			/* TODO err_code */
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
 		if ( token->type != TKN_EOL )	
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
 		token = get_token();
 
-		if ( r_stat_list == false )
+		if ( r_stat_list(local_symtb) == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
 		if ( token->type != KWD_loop )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -1024,17 +1075,20 @@ bool r_stat()		/* TODO otestovat */
 	{
 		/* Simulacia pravidla '26' */
 
-		/* TODO iba vo funkcii*/
-		if ( vyhodnot_vyraz(&token) != 0 )
+		if ( in_scope == true )
 		{
-			/* TODO err_code */
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
+			return false;
+		}
+
+		if ( (err_code = vyhodnot_vyraz(&token)) != 0 )
+		{
 			return false;
 		}
 	}
 	else
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
 		return false;
 	}
 
@@ -1043,7 +1097,7 @@ return true;
 /* KONIEC r_stat() */
 
 
-bool r_stat_list()
+bool r_stat_list(SYMTB_itemptr_l *local_symtb)
 {
 	if ( (token->type == KWD_end) || 
 	(token->type == KWD_loop) || (token->type == KWD_else))
@@ -1063,29 +1117,29 @@ bool r_stat_list()
 	{
 		/* Simulacia pravidla '31' */
 		
-		if ( r_stat() == false )
+		if ( r_stat(local_symtb) == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
 		if ( token->type != TKN_EOL )	
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
 		token = get_token();
 
-		if ( r_stat_list() == false )	
+		if ( r_stat_list(local_symtb) == false )	
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 	}
 	else
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
 		return false;
 	}
 
@@ -1095,23 +1149,23 @@ bool r_stat_list()
 
 	else
 	{
-		if ( r_stat() == false )
+		if ( r_stat(local_symtb) == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 
 		if ( token->type != TKN_EOL )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 	
 		token = get_token();
 			
-		if ( r_stat_list() == false )
+		if ( r_stat_list(local_symtb) == false )
 		{
-			//err_code = SYNTAX_ERR;
+			err_code = SYNTAX_ERR;
 			return false;
 		}
 		
@@ -1146,7 +1200,7 @@ bool r_type()
 	}
 	else 
 	{
-		//err_code = SYNTAX_ERR;
+		err_code = SYNTAX_ERR;
 		return false;
 	}
 }
@@ -1164,10 +1218,60 @@ char type2char(Ttoken *token)
 
 /* KONIEC r_type */
 
+
+bool check_functions(SYMTB_itemptr_g RootPtr)
+{
+	if ( RootPtr != NULL )
+	{
+		if ( (RootPtr->fc_declared == true) && (RootPtr->fc_defined == false) )
+			return false;
+		else
+			return (true && check_functions(RootPtr->rptr) && check_functions(RootPtr->lptr));
+
+	}
+	return true;
+}
+
+
 int main()
 {
-	global_symtb = NULL;
+
+	SYMTB_itemptr_l local = NULL;
+	SYMTB_itemptr_l tmp = NULL;	
+
+	GST_add_function(&global_symtb, "hello", true, true, 's', "si");	
+	GST_add_function(&global_symtb, "hell", true, true, 's', "si");	
+	GST_add_function(&global_symtb, "world", true, true, 's', "si");	
+	GST_add_function(&global_symtb, "shiit", false, true, 's', "si");	
+	GST_add_function(&global_symtb, "hole", true, true, 's', "si");	
+	GST_add_function(&global_symtb, "jesus", true, true, 's', "si");	
+	GST_add_function(&global_symtb, "christ", true, true, 's', "si");	
+	GST_add_function(&global_symtb, "morning", true, false, 's', "si");	
+	GST_add_function(&global_symtb, "halo", true, true, 's', "si");	
 	
+	Print_tree_g(global_symtb);	
+	
+	if ( check_functions(global_symtb) == true )
+		printf("Fce OK\n");
+	else
+		printf("NOT OK");
+
+//	LST_add_var(&local, "hello", 'i');
+
+	//token = get_token();
+		
+	/*if(r_var_declaration(&local) == true)
+		printf("OK\n");
+	else
+	{
+		if (err_code == SYNTAX_ERR)
+			printf("SYNTAX ERROR\n");
+		else if (err_code == SEMANT_ERR)
+			printf("SEMANTIC ERROR\n");
+	}
+
+	Print_tree_l(local);
+
 	GST_add_function(&global_symtb, "hello", true, false, 's', "si");	
 
 	token = get_token();
@@ -1182,7 +1286,8 @@ int main()
 			printf("SEMANTIC ERROR\n");
 	}
 
-	Print_tree_g(global_symtb);
+	Print_tree_g(global_symtb);*/
+
 
 	return 0;
 }

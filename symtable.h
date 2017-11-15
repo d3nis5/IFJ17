@@ -20,8 +20,6 @@ extern int err_code;
 typedef struct local_symtable_item
 {
 	char *var_name;						/* nazov premennej */
-	bool var_declared;					/* bola premenna deklarovana */
-	bool var_defined;					/* bola premenna definovana */
 	char type;							/* datovy typ premennej {'i', 'd', 's'} */
 	union								/* hodnota premennej */
 	{
@@ -67,7 +65,7 @@ SYMTB_itemptr_l LST_search(SYMTB_itemptr_l RootPtr, char *name);
  * Pri uspechu vracia ukazatel na novu polozku
  * Ak sa v tabulke uz nachadza premenna s tymto menom vracia sa ukazatel na nu a err_code = -1
  */
-SYMTB_itemptr_l LST_add_var(SYMTB_itemptr_l *RootPtr, char *name, bool declared, bool defined, char type);
+SYMTB_itemptr_l LST_add_var(SYMTB_itemptr_l *RootPtr, char *name, char type);
 
 /* Zrusi celu lokalnu tabulku symbolov */
 void LST_delete_tab(SYMTB_itemptr_l *);
@@ -77,6 +75,7 @@ void LST_delete_tab(SYMTB_itemptr_l *);
 
 /* TODO zmazat */
 void Print_tree_g(SYMTB_itemptr_g TempTree);
+void Print_tree_l(SYMTB_itemptr_l TempTree);
 
 
 /* Inicializacia globalnej tabulky symbolov */

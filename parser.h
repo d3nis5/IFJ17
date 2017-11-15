@@ -38,12 +38,12 @@ bool r_definition();
 /* Pravidlo pre <VarDec> 
  * Deklaracia a definicia premennych
  */
-bool r_var_declaration();
+bool r_var_declaration(SYMTB_itemptr_l*);
 
 /* Pravidlo pre <VarDef> 
  * Definicia premennych
  */
-bool r_var_definition();
+bool r_var_definition(SYMTB_itemptr_l*);
 
 /* Pravidlo pre <Assign> 
  * Priradenie hodnoty do premennej alebo zavolanie funkcie na pravej strane vyrazu
@@ -83,12 +83,12 @@ bool r_rhs();
 /* Pravidlo pre <Stat> 
  * Statement - prikaz
  */
-bool r_stat();
+bool r_stat(SYMTB_itemptr_l*);
 
 /* Pravidlo pre <StatList> 
  * Statement list - Zoznam prikazov 
  */
-bool r_stat_list();
+bool r_stat_list(SYMTB_itemptr_l*);
 
 /* Pravidlo pre <Type> 
  * Datove typy
@@ -102,5 +102,9 @@ bool r_par_par();
 
 /* Vrati datovy typ tokenu ako 1 znak {'i', 's', 'd'} */
 char type2char(Ttoken *token);
+
+/* Skontroluje ci vsetky deklarovane funkcie boli definovane */
+bool check_functions(SYMTB_itemptr_g);
+
 
 #endif /* PARSER_H */
