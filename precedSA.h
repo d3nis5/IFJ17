@@ -2,17 +2,19 @@
 #include<stdlib.h>
 #include<stdbool.h>
 
+#include"symtable.h"
+#include"error.h"
+#include"token.h"
+
 /* TODO zmazat */
 #include "gettoken.h"
 
 
-#include"error.h"
-#include"token.h"
 
 #ifndef PRECEDSA_H
 #define PRECEDSA_H
 
-
+extern SYMTB_itemptr_g global_symtb;	//ukazatel do globalnej tabulky symbolov(id funkcii)
 typedef struct tdElem
 {
     Ttoken *TokenPtr;				//Ukazatel na token
@@ -22,7 +24,7 @@ typedef struct tdElem
 } *tdElemPtr;
 
 /*Zasobnik vo forme obojsmerne viazaneho zoznamu pre precedencnu analyzu*/
-typedef struct 
+typedef struct
 {                        /* dvousměrně vázaný seznam */
 	tdElemPtr Bottom;    /* ukazatel na první prvek seznamu */
 	tdElemPtr Act;      /* ukazatel na aktuální prvek seznamu */
@@ -70,23 +72,25 @@ void tdStackPred (tdStack *);
 /*Vracia 0 ak je stack neaktivny*/
 int tdStackActive (tdStack *);
 
-/*Vyhodnoti vyraz a vrati nulu v pripade uspechu, inak chybovy kod podla error.h*/
-int vyhodnot_vyraz(Ttoken **token);
+/*Vyhodnoti vyraz a vrati nulu v pripade uspechu, inak chybovy kod podla error.h
+*bool znaci ci sa nachadzame v assign(true) vyraze alebo if/dowhile(false) vyraze*/
+int vyhodnot_vyraz(Ttoken **token, SYMTB_itemptr_l , bool);
 
 /*Najde a vrati nablizsi terminal na vrchole zasobniku (ako cislo riadka do precedTab)*/
 int getTopTerm(tdStack *);
 
-/*Funckcia co vracia typ terminalu z tokenu*/
-TKN_type TokenType(Ttoken *);
-
 /*Na zaklade tokenu vrati index riadka alebo stlpca do precedencnej tabulky **alebo -1 v pripade ze dostane neocakavny token*/
 int getIndex(TKN_type);
 
-/*Vrati cislo pravidla ak sa daju zredukovat na zasobniku alebo -1 pri nenajdeni vhodneho pravidla*/
-int WhichRule(int *, int);
+/*Vrati cislo pravidla ak sa daju zredukovat na zasobniku alebo -2 pri nenajdeni vhodneho pravidla alebo -3 pri nevhodnom poradi operandov vo vyraze*/
+int WhichRule(Ttoken **,SYMTB_itemptr_l, int);
 
-/*Uplatni dane pravidlo na zasobnik od daneho prvku v zasobniku.
-**Vracia 0 ked sa to podari, -1 pri chybe kompilatora*/
-int DoRule(tdStack *, int);
+/*Uplatni dane pravidlo na zasobnik od daneho prvku v zasobniku. Premenna typu bool znaci ci sa nachadzame v priradovacom vyraze.
+**Vracia 0 ked sa to podari, COMPILER_ERR pri chybe kompilatora alebo TYPE_ERR pri typovej chybe vo vyraze alebo OTHER_SEMANT_ERR pri semantickej chybe*/
+int DoRule(tdStack *,SYMTB_itemptr_l, int, bool);
 
-#endif 	/* PRECEDSA_H */
+TKN_type TokenType(Ttoken *t);
+
+
+#endif /* PRECEDSA_H */
+

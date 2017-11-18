@@ -7,6 +7,8 @@ SYMTB_itemptr_g global_symtb = NULL;
 Ttoken *token;
 
 bool in_scope = false;
+int par_counter = 0;
+
 
 /* TODO viac znakov EOL za sebou, return v maine nemoze byt,
  * skontrolovat ci boli vsetky deklarovane funkcie aj definovane 
@@ -26,7 +28,6 @@ bool r_program()
 
 		if ( r_fc_dec() == false )
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -44,6 +45,7 @@ bool r_program()
 			fprintf(stderr, "Nie vsetky deklarovane funkcie boli definovane\n");
 			return false;
 		}
+	
 		in_scope = true;
 
 		token = get_token();
@@ -62,7 +64,6 @@ bool r_program()
 
 		if ( r_stat_list(&scope_symtb) == false )
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -117,7 +118,6 @@ bool r_fc_dec()
 		
 		if ( r_declaration() == false )
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -131,7 +131,6 @@ bool r_fc_dec()
 
 		if ( r_fc_dec() == false )	
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -142,7 +141,6 @@ bool r_fc_dec()
 
 		if ( r_definition() == false )		
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 		
@@ -156,7 +154,6 @@ bool r_fc_dec()
 
 		if ( r_fc_dec() == false )
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -245,7 +242,6 @@ bool r_declaration()
 		
 		if ( r_item_list(function) == false )	
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -308,7 +304,7 @@ bool r_definition()
 	}
 
 	fc_name = token->attribute.string;
-	function = GST_add_function(&global_symtb, fc_name, false, true, 0, "");
+	function = GST_add_function(&global_symtb, fc_name, false, false, 0, "");
 
 	if ( function == NULL )
 	{
@@ -330,7 +326,7 @@ bool r_definition()
 			/* Uz bola deklarovana ale nie definovana */
 
 			params = malloc((function->par_count+1) * sizeof(char));
-			strcpy(params,function->parameters);
+			strcpy(params,function->parameters); /* Kvoli kontrole typov parametrov */
 			function->par_count = 0;
 		}
 	}
@@ -349,7 +345,6 @@ bool r_definition()
 
 	if ( r_item_list(function) == false )
 	{
-		err_code = SYNTAX_ERR;
 		if ( params != NULL )
 			free(params);
 		return false;
@@ -416,11 +411,12 @@ bool r_definition()
 
 	if ( r_stat_list(&(function->local_symtb)) == false )
 	{
-		err_code = SYNTAX_ERR;
 		if ( params != NULL )
 			free(params);
 		return false;
 	}
+
+	function->fc_defined = true;
 
 	if ( token->type != KWD_end )
 	{
@@ -542,7 +538,6 @@ bool r_var_declaration(SYMTB_itemptr_l *local_symtb)
 		}
 		if ( r_var_definition(local_symtb) == false )
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 	}
@@ -566,7 +561,7 @@ bool r_var_definition(SYMTB_itemptr_l *local_symtb)
 	{
 		/* Simulacia pravidla '9' */
 	
-		if ( (err_code = vyhodnot_vyraz(&token)) != 0) 
+		if ( (err_code = vyhodnot_vyraz(&token, *local_symtb, true)) != 0) 
 		{
 			return false;
 		}
@@ -589,11 +584,20 @@ bool r_var_definition(SYMTB_itemptr_l *local_symtb)
 /* KONIEC r_var_definition() */
 
 
-bool r_assign() 		/* TODO otestovat */
+bool r_assign(SYMTB_itemptr_l local_symtb) 		/* TODO otestovat */
 {
 	if ( token->type == TKN_id )
 	{
 		/* Simulacia pravidla '8' */
+
+		/* Kontrola ci bola definovana premenna */
+	
+		if ( LST_search(local_symtb, token->attribute.string) == NULL)
+		{
+			err_code = SEMANT_ERR;
+			fprintf(stderr,"Nedefinovana premenna\n");
+			return false;
+		}
 
 		token = get_token();
 
@@ -605,9 +609,8 @@ bool r_assign() 		/* TODO otestovat */
 
 		token = get_token();
 
-		if ( r_rhs() == false )
+		if ( r_rhs(local_symtb) == false )
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 	}
@@ -621,7 +624,7 @@ bool r_assign() 		/* TODO otestovat */
 /* KONIEC r_assign() */
 
 
-bool r_expr_list()
+bool r_expr_list(SYMTB_itemptr_l local_symtb)
 {
 	if ( ( token->type == TKN_id ) || ( token->type == TKN_leftpar ) ||
 	( token->type == TKN_int ) || ( token->type == TKN_str ) ||
@@ -629,7 +632,7 @@ bool r_expr_list()
 	{
 		/* Simulacia pravidla '10' */
 	
-		if ( (err_code = vyhodnot_vyraz(&token)) != 0 )
+		if ( (err_code = vyhodnot_vyraz(&token,local_symtb, true)) != 0 )
 		{
 			return false;
 		}		
@@ -687,7 +690,6 @@ bool r_item_list(SYMTB_itemptr_g function)
 
 		if ( r_item2_list(function) == false )
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 	}
@@ -745,7 +747,6 @@ bool r_item2_list(SYMTB_itemptr_g function)
 
 		if ( r_item2_list(function) == false )
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 	}
@@ -760,8 +761,10 @@ bool r_item2_list(SYMTB_itemptr_g function)
 /* KONIEC r_item2_list() */
 
 
-bool r_par_list()
+bool r_par_list(SYMTB_itemptr_g function)
 {
+	par_counter = 0;
+
 	if ( token->type == TKN_rightpar )
 	{
 		/* Simulacia pravidla '16' */
@@ -769,19 +772,24 @@ bool r_par_list()
 
 		return true;
 	}
-	else if ( r_par_par() == true )
+	else if ( r_par_par(function) == true )
 	{
 		/* Simulacia pravidla '17' */
 
-		if ( r_par2_list() == false )
+		if ( r_par2_list(function) == false )
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 	}
 	else
 	{
-		err_code = SYNTAX_ERR;
+		return false;
+	}
+
+	if ( par_counter != function->par_count )
+	{
+		err_code = SEMANT_ERR;
+		fprintf(stderr, "Nespravny pocet parametrov vo volani funkie\n");
 		return false;
 	}
 
@@ -790,12 +798,41 @@ bool r_par_list()
 /* KONIEC r_par_list() */
 
 
-bool r_par_par()
+bool r_par_par(SYMTB_itemptr_g function)
 {
+	if ( par_counter >= function->par_count )
+	{
+		err_code = SEMANT_ERR;
+		fprintf(stderr, "Nespravny pocet parametrov vo volani funkie\n");
+		return false;
+	}
+
 	if ( token->type == TKN_id )
 	{
 		/* Simulacia pravidla '36' */
+
+		/* Kontrola definicie premennej */
+	
+		SYMTB_itemptr_l var = NULL;	
+
+		if ( (var = LST_search(function->local_symtb, token->attribute.string)) == NULL)
+		{
+			err_code = SEMANT_ERR;
+			fprintf(stderr, "Nedefinovana premenna\n");
+			return false;
+		}
 		
+		/* Kontrola typu parametru */
+
+		if ( var->type != function->parameters[par_counter] )
+		{
+			err_code = SEMANT_ERR;
+			fprintf(stderr, "Nespravny typ parametru vo volani funkcie\n");
+			return false;
+		}
+	
+		par_counter++;	
+	
 		token = get_token();
 		return true;
 	}
@@ -803,6 +840,17 @@ bool r_par_par()
 	{
 		/* Simulacia pravidla '37' */
 		
+		/* Kontrola typu parametru */
+
+		if ( function->parameters[par_counter] != 'i' )
+		{
+			err_code = SEMANT_ERR;
+			fprintf(stderr, "Nespravny typ parametru vo volani funkcie\n");
+			return false;
+		}
+
+		par_counter++;	
+
 		token = get_token();
 		return true;
 	}
@@ -810,6 +858,17 @@ bool r_par_par()
 	{
 		/* Simulacia pravidla '38' */
 		
+		/* Kontrola typu parametru */
+
+		if ( function->parameters[par_counter] != 'd' )
+		{
+			err_code = SEMANT_ERR;
+			fprintf(stderr, "Nespravny typ parametru vo volani funkcie\n");
+			return false;
+		}
+
+		par_counter++;	
+
 		token = get_token();
 		return true;
 	}
@@ -817,6 +876,17 @@ bool r_par_par()
 	{
 		/* Simulacia pravidla '39' */
 		
+		/* Kontrola typu parametru */
+
+		if ( function->parameters[par_counter] != 's' )
+		{
+			err_code = SEMANT_ERR;
+			fprintf(stderr, "Nespravny typ parametru vo volani funkcie\n");
+			return false;
+		}
+
+		par_counter++;	
+
 		token = get_token();
 		return true;
 	}
@@ -830,7 +900,7 @@ bool r_par_par()
 /* KONIEC r_par_par() */
 
 
-bool r_par2_list()
+bool r_par2_list(SYMTB_itemptr_g function)
 {
 	if ( token->type == TKN_rightpar )
 	{
@@ -839,21 +909,19 @@ bool r_par2_list()
 
 		return true;
 	}
-	else if ( token->type = TKN_colon )
+	else if ( token->type == TKN_colon )
 	{
 		/* Simulacia pravidla '19' */
 
 		token = get_token();
 
-		if ( r_par_par() == false )
+		if ( r_par_par(function) == false )
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 
-		if ( r_par2_list() == false )
+		if ( r_par2_list(function) == false )
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 	}
@@ -868,14 +936,53 @@ bool r_par2_list()
 /* KONIEC r_par2_list() */
 
 
-bool r_rhs()
+bool r_rhs(SYMTB_itemptr_l local_symtb)
 {
 	if ( token->type == TKN_id )
 	{
-		/* TODO Rozhodnut ci je to premenna alebo volanie funkcie 
-		 * skontrolovat typy parametrov vo volani funkcie
-		 */
+
+		SYMTB_itemptr_g function = GST_search(global_symtb, token->attribute.string);
+
+		if ( function == NULL)
+		{
+			goto variable;
+		}
+		else
+		{
+			/* Simulacia pravidla '21' */
 		
+			if ( (function->fc_declared == false) && (function->fc_defined == false))
+			{
+				/* Funkcia nebola deklarovana a rekurzivne vola sama seba */
+
+				fprintf(stderr, "Funkcia vola rekurzivne samu seba a nebola deklarovana\n");
+				err_code = SEMANT_ERR;
+				return false;
+			}
+	
+			token = get_token();
+	
+			if ( token->type != TKN_leftpar )
+			{
+				err_code = SYNTAX_ERR;
+				return false;
+			}
+	
+			token = get_token();
+	
+			if ( r_par_list(function) == false )
+			{
+				return false;
+			}
+	
+			if ( token->type != TKN_rightpar )
+			{
+				err_code = SYNTAX_ERR;
+				return false;
+			}
+	
+			token = get_token();
+		}
 	}
 	else if ( (token->type == TKN_leftpar) || ( token->type == TKN_int ) ||
 	(token->type == TKN_id ) || ( token->type == TKN_dbl ) || 
@@ -883,8 +990,10 @@ bool r_rhs()
 	{
 		/* Simulacia pravidla '20' */
 
-		if ( (err_code = vyhodnot_vyraz(&token) != 0 ))
+		variable:
+		if ( (err_code = vyhodnot_vyraz(&token, local_symtb, true)) != 0 )
 		{
+			printf("err_code = %d\n", err_code);
 			return false;
 		}
 	}
@@ -906,7 +1015,6 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 
 		if ( r_var_declaration(local_symtb) == false )
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 	}
@@ -914,9 +1022,8 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 	{
 		/* Simulacia pravidla '27' */
 
-		if ( r_assign() == false )
+		if ( r_assign(*local_symtb) == false )
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}	
 	}
@@ -940,7 +1047,7 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 		
 		token = get_token();
 	
-		if ( (err_code = vyhodnot_vyraz(&token)) != 0 )
+		if ( (err_code = vyhodnot_vyraz(&token, *local_symtb, true)) != 0 )
 		{
 			return false;
 		}
@@ -953,9 +1060,8 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 
 		token = get_token();
 
-		if ( r_expr_list() == false )
+		if ( r_expr_list(*local_symtb) == false )
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 	}
@@ -965,7 +1071,7 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 
 		token = get_token();
 
-		if ( (err_code = vyhodnot_vyraz(&token)) != 0 )
+		if ( (err_code = vyhodnot_vyraz(&token, *local_symtb, false)) != 0 )
 		{
 			return false;
 		}
@@ -989,7 +1095,6 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 
 		if ( r_stat_list(local_symtb) == false )
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -1010,7 +1115,6 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 
 		if ( r_stat_list(local_symtb) == false )
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 			
@@ -1043,10 +1147,8 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 		
 		token = get_token();
 	
-		if ( vyhodnot_vyraz(&token) != 0 )
+		if ( (err_code = vyhodnot_vyraz(&token, *local_symtb, false)) != 0 )
 		{
-			/* TODO err_code */
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -1060,7 +1162,6 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 
 		if ( r_stat_list(local_symtb) == false )
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -1081,7 +1182,7 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 			return false;
 		}
 
-		if ( (err_code = vyhodnot_vyraz(&token)) != 0 )
+		if ( (err_code = vyhodnot_vyraz(&token, *local_symtb, true)) != 0 )
 		{
 			return false;
 		}
@@ -1102,8 +1203,9 @@ bool r_stat_list(SYMTB_itemptr_l *local_symtb)
 	if ( (token->type == KWD_end) || 
 	(token->type == KWD_loop) || (token->type == KWD_else))
 	{
-		/* Simulacia pravidla '30' */
-		/* Epsilon pravidlo */
+		/* Simulacia pravidla '30' 
+		 * Epsilon pravidlo */
+
 		return true;
 	}
 
@@ -1151,7 +1253,6 @@ bool r_stat_list(SYMTB_itemptr_l *local_symtb)
 	{
 		if ( r_stat(local_symtb) == false )
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 
@@ -1165,7 +1266,6 @@ bool r_stat_list(SYMTB_itemptr_l *local_symtb)
 			
 		if ( r_stat_list(local_symtb) == false )
 		{
-			err_code = SYNTAX_ERR;
 			return false;
 		}
 		
@@ -1239,24 +1339,64 @@ int main()
 	SYMTB_itemptr_l local = NULL;
 	SYMTB_itemptr_l tmp = NULL;	
 
-	GST_add_function(&global_symtb, "hello", true, true, 's', "si");	
+	token = get_token();
+
+/*
+	GST_add_function(&global_symtb, "hello", false, true, 's', "i");	
+	LST_add_var(&(global_symtb->local_symtb),"hell", 's');
+
+	Print_tree_g(global_symtb);	
+
+	Print_tree_l(global_symtb->local_symtb);	
+
+	token = get_token();
+
+	if(r_rhs(local) == true)
+		printf("OK\n");
+	else
+	{
+		if (err_code == SYNTAX_ERR)
+			printf("SYNTAX ERROR\n");
+		else if (err_code == SEMANT_ERR)
+			printf("SEMANTIC ERROR\n");
+		else
+			printf("OTHER ERROR\n");
+	}
+*/	
+
+	GST_add_builtin(&global_symtb);
+
+	LST_add_var(&local, "hello", 'i');
+
 	GST_add_function(&global_symtb, "hell", true, true, 's', "si");	
 	GST_add_function(&global_symtb, "world", true, true, 's', "si");	
-	GST_add_function(&global_symtb, "shiit", false, true, 's', "si");	
 	GST_add_function(&global_symtb, "hole", true, true, 's', "si");	
 	GST_add_function(&global_symtb, "jesus", true, true, 's', "si");	
 	GST_add_function(&global_symtb, "christ", true, true, 's', "si");	
-	GST_add_function(&global_symtb, "morning", true, false, 's', "si");	
+	GST_add_function(&global_symtb, "morning", true, true, 's', "si");	
 	GST_add_function(&global_symtb, "halo", true, true, 's', "si");	
-	
-	Print_tree_g(global_symtb);	
-	
-	if ( check_functions(global_symtb) == true )
-		printf("Fce OK\n");
-	else
-		printf("NOT OK");
+		
+	Print_tree_g(global_symtb);
 
-//	LST_add_var(&local, "hello", 'i');
+	if ( r_assign(local) == true )
+		printf("OK\n");
+	else
+	{
+		if ( err_code == SEMANT_ERR )
+			printf("SEMANTIC ERROR\n");
+		else if ( err_code == SYNTAX_ERR )
+			printf("SYNTAX ERROR\n");
+		else if ( err_code == TYPE_ERR )
+			printf("TYPE ERROR\n");
+		else
+			printf("OTHER ERROR\n");
+	}
+	
+	return 0;
+}
+	
+
+
 
 	//token = get_token();
 		
@@ -1289,5 +1429,3 @@ int main()
 	Print_tree_g(global_symtb);*/
 
 
-	return 0;
-}

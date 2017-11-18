@@ -48,12 +48,12 @@ bool r_var_definition(SYMTB_itemptr_l*);
 /* Pravidlo pre <Assign> 
  * Priradenie hodnoty do premennej alebo zavolanie funkcie na pravej strane vyrazu
  */
-bool r_assign();
+bool r_assign(SYMTB_itemptr_l);
 
 /* Pravidlo pre <ExprList> 
  * Zoznam vyrazov pre funkciu print
  */
-bool r_expr_list();
+bool r_expr_list(SYMTB_itemptr_l);
 
 /* Pravidlo pre <ItemList> 
  * Zoznam parametrov pri deklarovani/ definicii funcii
@@ -68,17 +68,17 @@ bool r_item2_list(SYMTB_itemptr_g);
 /* Pravidlo pre <ParList> 
  * Zoznam parametrov funkcie pri jej volani
  */
-bool r_par_list();
+bool r_par_list(SYMTB_itemptr_g);
 
 /* Pravidlo pre <Par2List>
  * Pomocne pravidlo pre pravidlo <ParList>
  */
-bool r_par2_list();
+bool r_par2_list(SYMTB_itemptr_g);
 
 /* Pravidlo pre <RS> 
  * Prava strana priradenia pri pravidle <Assign>
  */
-bool r_rhs();
+bool r_rhs(SYMTB_itemptr_l);
 
 /* Pravidlo pre <Stat> 
  * Statement - prikaz
@@ -98,7 +98,7 @@ bool r_type();
 /* Pravidlo pre <ParPar> 
  * Typy parametrov pri volani funkcie
  */
-bool r_par_par();
+bool r_par_par(SYMTB_itemptr_g);
 
 /* Vrati datovy typ tokenu ako 1 znak {'i', 's', 'd'} */
 char type2char(Ttoken *token);

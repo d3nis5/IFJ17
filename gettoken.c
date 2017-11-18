@@ -10,38 +10,39 @@ Ttoken *get_token()
 	i++;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = KWD_dim;
+	token->type = TKN_id;
+	token->attribute.string = "hello";
 	pole[0] = token;
+
+	token = (Ttoken*) malloc(sizeof(Ttoken));
+	token->type = TKN_eq;
+	pole[1] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
 	token->type = TKN_id;
 	token->attribute.string = "hello";
-	pole[1] = token;
-
-	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = KWD_as;
 	pole[2] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = KWD_string;
+	token->type = TKN_leq;
 	pole[3] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_EOL;
+	token->type = TKN_int;
 	pole[4] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = KWD_scope;
+	token->type = TKN_star;
 	pole[5] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_colon;
+	token->type = TKN_dbl;
 	pole[6] = token;
-/*
-	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_id;
-	pole[7] = token;
 
+	token = (Ttoken*) malloc(sizeof(Ttoken));
+	token->type = TKN_EOL;
+	pole[7] = token;
+/*
 	token = (Ttoken*) malloc(sizeof(Ttoken));
 	token->type = KWD_as;
 	pole[8] = token;

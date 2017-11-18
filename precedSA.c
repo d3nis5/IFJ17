@@ -1,5 +1,4 @@
 #include "precedSA.h"
-
 #define MAXPOLE 10
 
 /*Tabulka precedencnych pravidiel*/
@@ -24,15 +23,25 @@ char PrecTab[18][18]={
 	"<<<<<<<<<<<<E<<<<$"  //$ EOL ; 17
 	};
 
-int vyhodnot_vyraz(Ttoken **token)
+int vyhodnot_vyraz(Ttoken **token, SYMTB_itemptr_l locTab , bool assign)
 {
 	int chyba;
 	char pravidlo;
 	int riadok,stlpec;
 	Ttoken *t, *t2, ts, th;	//t2 je pomocny pointer na token a ts a th je pomocny token
 	tdStack S;		//zasobnik
+    SYMTB_itemptr_l premenna;
 
 	t=*token; //prvy token
+	if (t->type == TKN_id && GST_search(global_symtb, t->attribute.string)) //kontrola ci id nie je funkcia
+		return SYNTAX_ERR;
+
+    if(t->type == TKN_id)  //je premenna deklarovana
+    {
+        premenna=LST_search(locTab, t->attribute.string);
+        if (premenna == NULL)   //nebola deklarovana
+            return SEMANT_ERR;
+    }
 
 	tdStackInit(&S);
 	th.type='<';	//pomocny token ktory obsahuje zaciatok handle
@@ -56,46 +65,63 @@ int vyhodnot_vyraz(Ttoken **token)
 		pravidlo=PrecTab[riadok][stlpec];
 		switch (pravidlo)
 		{
-			case '=':	chyba=tdStackPush(&S, t);	//push token stlpca a precita dalsi symbol zo vstupu
-						if (chyba)
-					    {
-        					tdStackDispose(&S);
-        					return COMPILER_ERR;
-    					}
-						t=get_token();	//TODO
-						break;
-
-			case '<':	tdStackActTop(&S);	//nastavi aktivitu na vrchol zasobnika
-						tdStackTop(&S, &t2);
-						if ( getIndex(TokenType(t2)) == 19)
-						{
-                            chyba=tdStackPreInsert(&S, &th);	//push '<' pred vrchol zasobnika*/
-							if (chyba)
-                        	{
-                            	tdStackDispose(&S);
-                            	return COMPILER_ERR;
-                        	}
-						}
-                        else
-						chyba=tdStackPush(&S, &th);
-						if (chyba)
-                        {
-                            tdStackDispose(&S);
-                            return COMPILER_ERR;
+			case '=':	{
+                            chyba=tdStackPush(&S, t);	//push token stlpca a precita dalsi symbol zo vstupu
+                            if (chyba)
+                            {
+                                tdStackDispose(&S);
+                                return COMPILER_ERR;
+                            }
+                            t=get_token();	//TODO
+                            if (t->type == TKN_id && GST_search(global_symtb, t->attribute.string)) //je funkcia?
+                            {
+                                tdStackDispose(&S);
+                                return SYNTAX_ERR;
+                            }
+                            break;
                         }
 
-						chyba=tdStackPush(&S, t);    //push token stlpca a precita dalsi symbol zo vstupu
-						if (chyba)
-                        {
-                            tdStackDispose(&S);
-                            return COMPILER_ERR;
-                        }
+			case '<':	{
+                            tdStackActTop(&S);	//nastavi aktivitu na vrchol zasobnika
+                            tdStackTop(&S, &t2);
+                            int tmp5=getIndex(TokenType(t2));
+                            if ( tmp5 >= 19 && tmp5 <=21 )	//na vrchole je neterminal
+                            {
+                                chyba=tdStackPreInsert(&S, &th);	//push '<' pred vrchol zasobnika*/
+                                if (chyba)
+                                {
+                                    tdStackDispose(&S);
+                                    return COMPILER_ERR;
+                                }
+                            }
+                            else
+                            {
+                                chyba=tdStackPush(&S, &th);
+                                if (chyba)
+                                {
+                                    tdStackDispose(&S);
+                                    return COMPILER_ERR;
+                                }
+                            }
 
-                        t=get_token();	//TODO
-                        break;
+                            chyba=tdStackPush(&S, t);    //push token stlpca a precita dalsi symbol zo vstupu
+                            if (chyba)
+                            {
+                                tdStackDispose(&S);
+                                return COMPILER_ERR;
+                            }
+
+                            t=get_token();	//TODO
+                            if (t->type == TKN_id && GST_search(global_symtb, t->attribute.string)) //bola funkcia deklarovana?
+                            {
+                                tdStackDispose(&S);
+                                return SYNTAX_ERR;
+                            }
+                            break;
+                        }
 
 			case '>':	{
-							int pole[MAXPOLE];
+							Ttoken *TknPole[MAXPOLE];	//pole ukazatelov na token
 							int poc, znak, rule;
 
 							tdStackActTop(&S);   //nastavi sa na vrchol zasobnika
@@ -112,26 +138,45 @@ int vyhodnot_vyraz(Ttoken **token)
 							for (int i=0; i<poc; i++)
 							{
 								if (i>=MAXPOLE)
-									printf("maxpole error\n"); //TODO ERROR
+									fprintf(stderr,"maxpole error\n"); //TODO ERROR
 
-                                pole[i]=getIndex(TokenType(t2));
-								tdStackSucc(&S);	//preskocime '<'
+								TknPole[i]=t2;	//ulozi ukazatel na pomocny token '<'
+								tdStackSucc(&S);
 								tdStackActCopy(&S, &t2);
 							}
-							rule=WhichRule(pole, poc);
-							if (rule < 0)	//ziadne pravidlo nevyhovuje
-							{
-								tdStackDispose(&S);
-                                return SYNTAX_ERR;
+							rule=WhichRule(TknPole,locTab, poc);
+							if (rule < 0)
+                            {
+                                tdStackDispose(&S);
+                                switch (rule)
+                                {
+                                    case -2: return SYNTAX_ERR;
+                                    case -3: return SEMANT_ERR;
+                                    case -4: return TYPE_ERR;
+                                    default: return SYNTAX_ERR;
+                                }
+                            }
+
+							int v=DoRule(&S, locTab, rule, assign);
+							if (v != 0)
+							{   if (v == COMPILER_ERR)
+                                {
+                                    tdStackDispose(&S);
+                                    return COMPILER_ERR;
+                                }
+                                else if (v == OTHER_SEMANT_ERR)
+                                {
+                                    tdStackDispose(&S);
+                                    return OTHER_SEMANT_ERR;
+                                }
+                                else if (v == TYPE_ERR)
+                                {
+                                    tdStackDispose(&S);
+                                    return TYPE_ERR;
+                                }
 							}
-							int v=DoRule(&S, rule);
-							if (v<0)
-							{
-								tdStackDispose(&S);
-								return COMPILER_ERR;
-							}
-						}
-						break;
+                            break;
+                        }
 
 			case 'E':	tdStackDispose(&S);
                         return SYNTAX_ERR;
@@ -141,378 +186,520 @@ int vyhodnot_vyraz(Ttoken **token)
 
 	*token=t;	//vratim ukazatel na dalsi token
 	tdStackDispose(&S);
-	return 0;
+	return 0;	//vsetko v poriadku
 }
 
-int DoRule(tdStack *S, int rule)
+int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
 {
+    SYMTB_itemptr_l loc;
+	char result_type;	//premenna znaciaca vysledny neterminal
 	int chyba;
-	Ttoken *new;
-	if (rule == 1)	// '*'
-	{
-		//TODO semantic
-		for(int i=0; i<4; i++)	//vymaze pocet prvkov na zasobniku kolko sa pomocou pravidla zredukuje
-		{
-			tdStackDeleteTop(S);
-		}
-		new=malloc(sizeof(struct token));
-		if (new == NULL)
-		{
-			return -1;
-		}
-		new->type='N';
-		chyba=tdStackPush(S, new);
-		if (chyba)
-            return -1;
-	}
-	else if (rule == 2)	// '+'
-	{
-		//TODO semantic
-		for(int i=0; i<4; i++)  //vymaze pocet prvkov na zasobniku kolko sa pomocou pravidla zredukuje
-        {
-            tdStackDeleteTop(S);
-        }
-        new=malloc(sizeof(struct token));
-        if (new == NULL)
-        {
-            return -1;
-        }
-        new->type='N';
-        chyba=tdStackPush(S, new);
-		if (chyba)
-            return -1;
-	}
-    else if (rule == 3)	// '-'
+	Ttoken *new, *t1, *t2, *t3, *t4;
+	tdStackActTop(S);
+	if (rule <= 12 && rule >=0)
     {
-        //TODO semantic
-        for(int i=0; i<4; i++)  //vymaze pocet prvkov na zasobniku kolko sa pomocou pravidla zredukuje
-        {
-            tdStackDeleteTop(S);
-        }
-        new=malloc(sizeof(struct token));
-        if (new == NULL)
-		{
-            return -1;
-		}
-        new->type='N';
-        chyba=tdStackPush(S, new);
-		if (chyba)
-            return -1;
+        tdStackActCopy(S, &t4);	// op2
+		tdStackPred(S);
+		tdStackActCopy(S, &t3);	// operator
+        tdStackPred(S);
+        tdStackActCopy(S, &t2);	// op1
+        tdStackPred(S);
+		tdStackActCopy(S, &t1);	// '<' handle
     }
-    else if (rule == 4)	// '/'
+    else
     {
-        //TODO semantic
-        for(int i=0; i<4; i++)  //vymaze pocet prvkov na zasobniku kolko sa pomocou pravidla zredukuje
-        {
-            tdStackDeleteTop(S);
-        }
-        new=malloc(sizeof(struct token));
-        if (new == NULL)
-        {
-            return -1;
-        }
-        new->type='N';
-        chyba=tdStackPush(S, new);
-		if (chyba)
-            return -1;
+        tdStackActCopy(S, &t2);	// id/int/double/string
+        tdStackPred(S);
+		tdStackActCopy(S, &t1); // '<' handle
     }
-    else if (rule == 5) // '\'
-    {
-        //TODO semantic
-        for(int i=0; i<4; i++)  //vymaze pocet prvkov na zasobniku kolko sa pomocou pravidla zredukuje
-        {
-            tdStackDeleteTop(S);
-        }
-        new=malloc(sizeof(struct token));
-        if (new == NULL)
-        {
-            return -1;
-        }
-        new->type='N';
-        chyba=tdStackPush(S, new);
-		if (chyba)
-            return -1;
-    }
-    else if (rule == 6)	// '<'
-    {
-        //TODO semantic
-        for(int i=0; i<4; i++)  //vymaze pocet prvkov na zasobniku kolko sa pomocou pravidla zredukuje
-        {
-            tdStackDeleteTop(S);
-        }
-        new=malloc(sizeof(struct token));
-        if (new == NULL)
-        {
-            return -1;
-        }
-        new->type='N';
-        chyba=tdStackPush(S, new);
-		if (chyba)
-			return -1;
-    }
-    else if (rule == 7)	// '>'
-    {
-        //TODO semantic
-        for(int i=0; i<4; i++)  //vymaze pocet prvkov na zasobniku kolko sa pomocou pravidla zredukuje
-        {
-            tdStackDeleteTop(S);
-        }
-        new=malloc(sizeof(struct token));
-        if (new == NULL)
-        {
-            return -1;
-        }
-        new->type='N';
-        chyba=tdStackPush(S, new);
-		if (chyba)
-            return -1;
-    }
-    else if (rule == 8)	// '='
-    {
-        //TODO semantic
-        for(int i=0; i<4; i++)  //vymaze pocet prvkov na zasobniku kolko sa pomocou pravidla zredukuje
-        {
-            tdStackDeleteTop(S);
-        }
-        new=malloc(sizeof(struct token));
-        if (new == NULL)
-        {
-            return -1;
-        }
-        new->type='N';
-        chyba=tdStackPush(S, new);
-		if (chyba)
-            return -1;
-    }
-    else if (rule == 9)	// '<='
-    {
-        //TODO semantic
-        for(int i=0; i<4; i++)  //vymaze pocet prvkov na zasobniku kolko sa pomocou pravidla zredukuje
-        {
-            tdStackDeleteTop(S);
-        }
-        new=malloc(sizeof(struct token));
-        if (new == NULL)
-        {
-            return -1;
-        }
-        new->type='N';
-        chyba=tdStackPush(S, new);
-		if (chyba)
-            return -1;
-    }
-    else if (rule == 10)	// '>='
-    {
-        //TODO semantic
-        for(int i=0; i<4; i++)  //vymaze pocet prvkov na zasobniku kolko sa pomocou pravidla zredukuje
-        {
-            tdStackDeleteTop(S);
-        }
-        new=malloc(sizeof(struct token));
-        if (new == NULL)
-        {
-            return -1;
-        }
-        new->type='N';
-        chyba=tdStackPush(S, new);
-		if (chyba)
-            return -1;
-    }
-    else if (rule == 11)	// '<>'
-    {
-        //TODO semantic
-        for(int i=0; i<4; i++)  //vymaze pocet prvkov na zasobniku kolko sa pomocou pravidla zredukuje
-        {
-            tdStackDeleteTop(S);
-        }
-        new=malloc(sizeof(struct token));
-        if (new == NULL)
-        {
-            return -1;
-        }
-        new->type='N';
-        chyba=tdStackPush(S, new);
-		if (chyba)
-            return -1;
-    }
-    else if (rule == 12)	// '(N)'
-    {
-        //TODO semantic
-        for(int i=0; i<4; i++)  //vymaze pocet prvkov na zasobniku kolko sa pomocou pravidla zredukuje
-        {
-            tdStackDeleteTop(S);
-        }
-        new=malloc(sizeof(struct token));
-        if (new == NULL)
-        {
-            return -1;
-        }
-        new->type='N';
-        chyba=tdStackPush(S, new);
-		if (chyba)
-            return -1;
-    }
-	else if (rule == 13)
-	{
-		//TODO semantic
-        for(int i=0; i<2; i++)  //vymaze pocet prvkov na zasobniku kolko sa pomocou pravidla zredukuje
-        {
-            tdStackDeleteTop(S);
-        }
 
-		new=malloc(sizeof(struct token));
-        if (new == NULL)
-        {
-            return -1;
-        }
-        new->type='N';
-       	chyba=tdStackPush(S, new);
-		if (chyba)
-            return -1;
+	if (rule == 1)	// '*'I->I*I, D->D*D, D->D*I, D->I*D
+	{
+		//Oba operandy su typu double
+		if ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+			 ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) )
+		{
+			result_type='D';
+		}
+		//oba operandy su typu int
+		else if ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+             	  ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) )
+		{
+			result_type='I';
+		}
+		//jeden operand je double a druhy int
+		else if( ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+	               ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) ) ||
+			     ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+                   ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) ) )
+		{
+			result_type='D';
+		}
+		else
+			return TYPE_ERR;	//semanticka chyba
 	}
-    else if (rule == 14)
-    {
-        //TODO semantic
-        for(int i=0; i<2; i++)  //vymaze pocet prvkov na zasobniku kolko sa pomocou pravidla zredukuje
+	else if (rule == 2)	// '+'	D->D+D, I->I+I, D->I+D, D->D+I, S->S+S
+	{
+        //Oba operandy su typu double
+        if ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+             ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) )
         {
-            tdStackDeleteTop(S);
+            result_type='D';
         }
+        //oba operandy su typu int
+        else if ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+                  ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) )
+        {
+            result_type='I';
+        }
+        //jeden operand je double a druhy int
+        else if( ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+                   ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) ) ||
+                 ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+                   ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) ) )
+        {
+            result_type='D';
+        }
+		//oba operandy su typu string
+		else if ( ((TokenType(t2) == TKN_str) || (TokenType(t2) == 'S')) &&
+                  ((TokenType(t4) == TKN_str) || (TokenType(t4) == 'S')) )
+		{
+			result_type='S';
+		}
+		else
+			return TYPE_ERR;
+	}
+    else if (rule == 3)	// '-'	D->D-D, I->I-I, D->D-I, D->I-D
+    {
+        //Oba operandy su typu double
+        if ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+             ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) )
+        {
+            result_type='D';
+        }
+        //oba operandy su typu int
+        else if ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+                  ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) )
+        {
+            result_type='I';
+        }
+        //jeden operand je double a druhy int
+        else if( ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+                   ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) ) ||
+                 ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+              	   ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) ) )
+        {
+            result_type='D';
+        }
+        else
+            return TYPE_ERR;
+    }
+    else if (rule == 4)	// '/'	D->D/D, D->I/I, D->D/I, D->I/D
+    {
+        //Oba operandy su typu double
+        if ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+             ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) )
+        {
+            result_type='D';
+        }
+        //oba operandy su typu int
+        else if ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+                  ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) )
+        {
+            result_type='D';
+        }
+        //jeden operand je double a druhy int
+        else if( ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+                   ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) ) ||
+             	 ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+             	   ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) ) )
+        {
+            result_type='D';
+        }
+        else
+            return TYPE_ERR;
+    }
+    else if (rule == 5) // '\' I->I\I
+    {
+        //oba operandy su typu int
+        if ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+             ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) )
+        {
+            result_type='I';
+        }
+        else
+            return TYPE_ERR;
+    }
+    else if (rule == 6)	// '<'	D->D<D, I->I<I, D->D<I, D->I<D, S->S<S
+    {
+		if (assign)
+		{
+				return OTHER_SEMANT_ERR;
+		}
+		else
+		{
+			//Oba operandy su typu double
+        	if ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+             	 ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) )
+        	{
+            	result_type='D';
+        	}
+        	//oba operandy su typu int
+        	else if ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+                  	  ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) )
+        	{
+            	result_type='I';
+        	}
+        	//jeden operand je double a druhy int
+        	else if( ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+                   	   ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) ) ||
+             		 ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+             		   ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) ) )
+        	{
+            	result_type='D';
+        	}
+			//oba operandy su typu string
+        	else if ( ((TokenType(t2) == TKN_str) || (TokenType(t2) == 'S')) &&
+                  	  ((TokenType(t4) == TKN_str) || (TokenType(t4) == 'S')) )
+        	{
+            	result_type='S';
+        	}
+        	else
+            	return TYPE_ERR;
+		}
+    }
+    else if (rule == 7)	// '>'	D->D>D, I->I>I, D->D>I, D->I>D, S->S>S
+    {
+		if (assign)
+		{
+				return OTHER_SEMANT_ERR;
+		}
+		else
+		{
+			//Oba operandy su typu double
+        	if ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+             	 ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) )
+        	{
+            	result_type='D';
+        	}
+        	//oba operandy su typu int
+        	else if ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+                  	  ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) )
+        	{
+            	result_type='I';
+        	}
+        	//jeden operand je double a druhy int
+        	else if( ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+                   	   ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) ) ||
+             		 ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+             		   ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) ) )
+        	{
+            	result_type='D';
+        	}
+			//oba operandy su typu string
+        	else if ( ((TokenType(t2) == TKN_str) || (TokenType(t2) == 'S')) &&
+                  	  ((TokenType(t4) == TKN_str) || (TokenType(t4) == 'S')) )
+        	{
+            	result_type='S';
+        	}
+        	else
+            	return TYPE_ERR;
+		}
+    }
+    else if (rule == 8)	// '='	D->D=D, I->I=I, D->D=I, D->I=D, S->S=S
+    {
+		if (assign)
+		{
+				return OTHER_SEMANT_ERR;
+		}
+		else
+		{
+			//Oba operandy su typu double
+        	if ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+             	 ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) )
+        	{
+            	result_type='D';
+        	}
+        	//oba operandy su typu int
+        	else if ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+                  	  ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) )
+        	{
+            	result_type='I';
+        	}
+        	//jeden operand je double a druhy int
+        	else if( ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+                   	   ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) ) ||
+             		 ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+             		   ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) ) )
+        	{
+            	result_type='D';
+        	}
+			//oba operandy su typu string
+        	else if ( ((TokenType(t2) == TKN_str) || (TokenType(t2) == 'S')) &&
+                  	  ((TokenType(t4) == TKN_str) || (TokenType(t4) == 'S')) )
+        	{
+            	result_type='S';
+        	}
+        	else
+            	return TYPE_ERR;
+		}
+    }
+    else if (rule == 9)	// '<='	D->D<=D, I->I<=I, D->D<=I, D->I<=D, S->S<=S
+    {
+		if (assign)
+		{
+				return OTHER_SEMANT_ERR;
+		}
+		else
+		{
+			//Oba operandy su typu double
+        	if ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+             	 ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) )
+        	{
+            	result_type='D';
+        	}
+        	//oba operandy su typu int
+        	else if ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+                  	  ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) )
+        	{
+            	result_type='I';
+        	}
+        	//jeden operand je double a druhy int
+        	else if( ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+                   	   ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) ) ||
+             		 ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+             		   ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) ) )
+        	{
+            	result_type='D';
+        	}
+			//oba operandy su typu string
+        	else if ( ((TokenType(t2) == TKN_str) || (TokenType(t2) == 'S')) &&
+                  	  ((TokenType(t4) == TKN_str) || (TokenType(t4) == 'S')) )
+        	{
+            	result_type='S';
+        	}
+        	else
+            	return TYPE_ERR;
+		}
+    }
+    else if (rule == 10)	// '>='		D->D>=D, I->I>=I, D->D>=I, D->I>=D, S->S>=S
+    {
+		if (assign)
+		{
+				return OTHER_SEMANT_ERR;
+		}
+		else
+		{
+			//Oba operandy su typu double
+        	if ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+             	 ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) )
+        	{
+            	result_type='D';
+        	}
+        	//oba operandy su typu int
+        	else if ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+                  	  ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) )
+        	{
+            	result_type='I';
+        	}
+        	//jeden operand je double a druhy int
+        	else if( ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+                   	   ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) ) ||
+             		 ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+             		   ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) ) )
+        	{
+            	result_type='D';
+        	}
+			//oba operandy su typu string
+        	else if ( ((TokenType(t2) == TKN_str) || (TokenType(t2) == 'S')) &&
+                  	  ((TokenType(t4) == TKN_str) || (TokenType(t4) == 'S')) )
+        	{
+            	result_type='S';
+        	}
+        	else
+            	return TYPE_ERR;
+		}
+    }
+    else if (rule == 11)	// '<>	D->D<>D, I->I<>I, D->D<>I, D->I<>D, S->S<>S'
+    {
+		if (assign)
+		{
+				return OTHER_SEMANT_ERR;
+		}
+		else
+		{
+			//Oba operandy su typu double
+        	if ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+             	 ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) )
+        	{
+            	result_type='D';
+        	}
+        	//oba operandy su typu int
+        	else if ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+                  	  ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) )
+        	{
+            	result_type='I';
+        	}
+        	//jeden operand je double a druhy int
+        	else if( ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+                   	   ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) ) ||
+             		 ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+             		   ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) ) )
+        	{
+            	result_type='D';
+        	}
+			//oba operandy su typu string
+        	else if ( ((TokenType(t2) == TKN_str) || (TokenType(t2) == 'S')) &&
+                  	  ((TokenType(t4) == TKN_str) || (TokenType(t4) == 'S')) )
+        	{
+            	result_type='S';
+        	}
+        	else
+            	return TYPE_ERR;
+		}
+    }
+    else if (rule == 12)	// '(id)', '(int)', '(str)', '(D)', '(I)', '(S)'
+    {
+   		if ((TokenType(t3) == TKN_int) || (TokenType(t3) == 'I'))
+		{
+			result_type='I';
+		}
+		else if ((TokenType(t3) == TKN_dbl) || (TokenType(t3) == 'D'))
+		{
+			result_type='D';
+		}
+		else if ((TokenType(t3) == TKN_str) || (TokenType(t3) == 'S'))
+		{
+			result_type='S';
+		}
+		else
+			return TYPE_ERR;
+    }
+	else if (rule == 13)	//rule pre id
+	{
+	    loc=LST_search(locTab,t2->attribute.string);
+        if (loc == NULL)
+            return -3;  //premenna nie je deklarovana ale toto by nemalo uz nastat
+        else
+        {
+            switch (loc->type)
+            {
+                case 'i':result_type='I';   break;
+                case 'd':result_type='D';   break;
+                case 's':result_type='S';   break;
+                default:break;
+            }
+        }
+	}
+    else if (rule == 14)	//rule pre 'I'->int
+    {
+        if (TokenType(t2) == TKN_int || TokenType(t2) == 'I')
+        {
+            result_type='I';
+        }
+        else
+            return TYPE_ERR;
+    }
+	else if (rule == 15)	//rule pre 'D'->double
+    {
+        if (TokenType(t2) == TKN_dbl || TokenType(t2) == 'D')
+        {
+            result_type='D';
+        }
+        else
+            return TYPE_ERR;
+    }
+    else if (rule == 16)	//rule pre 'S'->str
+    {
+        if (TokenType(t2) == TKN_str || TokenType(t2) == 'S')
+        {
+            result_type='S';
+        }
+        else
+            return TYPE_ERR;
+    }
 
-        new=malloc(sizeof(struct token));
-        if (new == NULL)
-        {
-            return -1;
-        }
-        new->type='N';
-        chyba=tdStackPush(S, new);
-		if (chyba)
-            return -1;
-    }
-	else if (rule == 15)
+    if (rule < 13)
     {
-        //TODO semantic
-        for(int i=0; i<2; i++)  //vymaze pocet prvkov na zasobniku kolko sa pomocou pravidla zredukuje
-        {
+        for(int i=0; i<4;i++)
             tdStackDeleteTop(S);
-        }
+    }
+    else
+    {
+        for(int i=0;i<2;i++)
+            tdStackDeleteTop(S);
 
-        new=malloc(sizeof(struct token));
-        if (new == NULL)
-        {
-            return -1;
-        }
-        new->type='N';
-        chyba=tdStackPush(S, new);
-		if (chyba)
-            return -1;
     }
-    else if (rule == 16)
-    {
-        //TODO semantic
-        for(int i=0; i<2; i++)  //vymaze pocet prvkov na zasobniku kolko sa pomocou pravidla zredukuje
-        {
-            tdStackDeleteTop(S);
-        }
-        new=malloc(sizeof(struct token));
-        if (new == NULL)
-        {
-            return -1;
-        }
-        new->type='N';
-        chyba=tdStackPush(S, new);
-		if (chyba)
-            return -1;
-    }
-	else
-		return 1; //TODO ??
-	return 0;
+
+    new=malloc(sizeof(struct token));
+	if (new == NULL)
+	{
+		return COMPILER_ERR;
+	}
+	new->type =result_type;
+	chyba=tdStackPush(S, new);
+	if (chyba)
+	{
+		free(new);
+        return COMPILER_ERR;
+	}
+	return 0;	//OK
 }
 
-int WhichRule(int *pole, int max)
+int WhichRule(Ttoken **pole,SYMTB_itemptr_l locTab, int max)
 {
-    if (pole[0] == '<')
-        return -1;
+    SYMTB_itemptr_l loc=NULL;
+
+    if (pole[0]->type != '<')	//ak nie je prve zaciatok handle, niekde sa stala chyba
+        return -2;  //SYNTAX_ERR
 	if (max == 4)
 	{
-		if ((pole[1] == 19 && pole[3] == 19) ||	(pole[1] == 11 && pole[3] == 12) )//'N'
+		if ((pole[1]->type == TKN_leftpar && pole[3]->type == TKN_rightpar) || (pole[1]->type == 'I' && pole[3]->type == 'I') ||	//(I/D/S) IoI
+			(pole[1]->type == 'D' && pole[3]->type == 'D') || (pole[1]->type == 'S' && pole[3]->type == 'S') ||	//DoD SoS
+			(pole[1]->type == 'I' && pole[3]->type == 'D') || (pole[1]->type == 'D' && pole[3]->type == 'I'))	//IoD DoI
 		{
-			switch (pole[2])
+			switch (getIndex(TokenType(pole[2])))
 			{
-				case 0: return 1;	// '*'
-				case 1: return 2;	// '+'
-				case 2: return 3;	// '-'
-				case 3: return 4;	// '/'
-				case 4: return 5;	// '\'
-				case 5: return 6;	// '<'
-				case 6: return 7;	// '>'
-				case 7: return 8;	// '='
-				case 8: return 9;	// '<='
-				case 9: return 10;	// '>='
-				case 10: return 11;	// '<>'
-				case 19: return 12;	// 'N'
-				default: return -1;	//Ziadne pravidlo
+				case 0: return 1;   break;	// '*'
+				case 1: return 2;	break;  // '+'
+				case 2: return 3;	break;  // '-'
+				case 3: return 4;	break;  // '/'
+				case 4: return 5;	break;  // '\'
+				case 5: return 6;	break;  // '<'
+				case 6: return 7;	break;  // '>'
+				case 7: return 8;	break;  // '='
+				case 8: return 9;	break;  // '<='
+				case 9: return 10;	break;  // '>='
+				case 10: return 11;	break;  // '<>'
+				case 19: return 12;	break;  // 'I'
+				case 20: return 12;	break;  // 'D'
+				case 21: return 12; break;  // 'S'
+				default: return -2;	break;//Ziadne pravidlo SYNTAX_ERR
 			}
 		}
+		return -4;  //typy nesedia
 	}
 	else if (max == 2)
 	{
-		if (pole[1] == 13)	//id
-			return 13;
-		else if (pole[1] == 14)	//int
-			return 14;
-		else if (pole[1] == 15)	//double
-			return 15;
-		else if (pole[1] == 16)	//string
-			return 16;
-		else				//Ziadne pravidlo nevyhovuje
-			return -1;
+		switch (getIndex(TokenType(pole[1])))
+		{	//id premennej
+			case 13: {
+                        loc=LST_search(locTab,pole[1]->attribute.string);
+                        if (loc == NULL)
+                            return -3;  //premenna nie je deklarovana
+                        else
+                            return 13;
+                    }
+			case 14: return 14; // int
+			case 15: return 15;	// double
+			case 16: return 16;	// string
+			default: return -2;	//ziadne pravidlo
+		}
 	}
 	else
-		return -1;	//Ziadne pravidlo nevyhovuje
-}
-
-TKN_type IndextoTKN_type(int v)
-{
-	if (v == 0)
-        return TKN_star;
-    if (v == 1)
-        return TKN_plus;
-    if (v == 2)
-        return TKN_minus;
-    if (v == 3)
-        return TKN_slash;
-    if (v == 4)
-        return TKN_backslash;
-    if (v == 5)
-        return TKN_less;
-    if (v == 6)
-        return TKN_gt;
-    if (v == 7)
-        return TKN_neq;
-    if (v == 8)
-        return TKN_leq;
-    if (v == 9)
-        return TKN_geq;
-    if (v == 10)
-        return TKN_neq;
-    if (v == 11)
-        return TKN_leftpar;
-    if (v == 12)
-        return TKN_rightpar;
-    if (v == 13)
-        return TKN_id;
-    if (v == 14)
-        return TKN_int;
-    if (v == 15)
-        return TKN_dbl;
-    if (v == 16)
-        return TKN_str;
-    if (v == 17)
-        return TKN_EOL;	// || TKN_smcolon
-	if (v == 18)
-		return '<';
-	if (v == 19)
-		return 'N';
+    {
+		return -2;
+    }
 }
 
 int getIndex(TKN_type type)
@@ -551,12 +738,16 @@ int getIndex(TKN_type type)
         return 15;
 	if (type == TKN_str)
         return 16;
-	if (type == TKN_EOL || type == TKN_smcolon || type == KWD_then)	// $
+	if (type == TKN_EOL || type == TKN_smcolon || type==KWD_then)	// $
         return 17;
 	if (type == '<')	//zaciatok handle
 		return 18;
-	if (type == 'N')	//neterminal
+	if (type == 'I')	//neterminal int
 		return 19;
+	if (type == 'D')	//neterminal double
+		return 20;
+	if (type == 'S')	//neterminal string
+		return 21;
 	return -1;	//nasiel neocakavany token
 }
 
@@ -601,7 +792,7 @@ void tdStackDispose(tdStack *S)
 	while(S->Act != NULL){
 		tmp=S->Act;
 		S->Act=S->Act->rptr;	//posun na dalsi prvok
-		if (tmp->TokenPtr->type == 'N')
+		if (tmp->TokenPtr->type == 'I' || tmp->TokenPtr->type == 'D' || tmp->TokenPtr->type == 'S')
             free(tmp->TokenPtr);
 		free(tmp);
 	}
@@ -658,7 +849,7 @@ void tdStackDeleteTop (tdStack *S)
 			S->Top=S->Top->lptr;
 			S->Top->rptr=NULL;
 		}
-		if (tmp->TokenPtr->type == 'N')
+		if (tmp->TokenPtr->type == 'I' || tmp->TokenPtr->type == 'D' || tmp->TokenPtr->type == 'S')
         {
           free(tmp->TokenPtr);
         }
@@ -678,7 +869,7 @@ void tdStackDeletePreAct (tdStack *S)
 				S->Bottom=S->Act;
 			else
 				tmp->lptr->rptr=S->Act;
-            if (tmp->TokenPtr->type == 'N')
+            if (tmp->TokenPtr->type == 'I' || tmp->TokenPtr->type == 'D' || tmp->TokenPtr->type == 'S')
                 free(tmp->TokenPtr);
 			free(tmp);
 		}
