@@ -5,7 +5,7 @@
 #include "precedSA.h"
 #include "symtable.h"
 #include "error.h"
-
+#include "instructions.h"
 
 /* TODO zmazat */
 #include "gettoken.h"
