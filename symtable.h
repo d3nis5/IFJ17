@@ -40,6 +40,7 @@ typedef struct global_symtable_item
 	bool fc_defined;					/* bola funkcia definovana? */ 
 	char ret_type;						/* datovy typ premennej {'i', 'd', 's'} */
 	int par_count;						/* pocet parametrov funkcie*/
+	char *par_names[MAX_PAR];			/* identifikatory parametrov */
 	char parameters[MAX_PAR];			/* parametre funkcie, retazec ukonceny 0 */
 	SYMTB_itemptr_l local_symtb;		/* ukazatel do lokalnej tabulky symbolov */
 	struct global_symtable_item *lptr;	/* ukazatel na lavy podstrom */

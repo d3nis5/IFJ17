@@ -299,29 +299,42 @@ bool GST_add_builtin(SYMTB_itemptr_g *table)
 {
 	/* TODO test na uspech */
 
+	SYMTB_itemptr_g function = NULL;
+
 	/* Length(s As String) As Integer */
 
 	char *name = (char*) malloc(7 * sizeof(char));
 	strcpy(name, "length");
-	GST_add_function(table, name, true, true, 'i', "s");
+	function = GST_add_function(table, name, true, true, 'i', "s");
+
+	function->par_names[0] = "s";
 
 	/* SubStr(s As String, i as Integer, n As Integer) As String */
 
 	name = (char*) malloc(7 * sizeof(char));
 	strcpy(name, "substr");
-	GST_add_function(table, name, true, true, 's', "sii");
+	function = GST_add_function(table, name, true, true, 's', "sii");
+
+	function->par_names[0] = "s";
+	function->par_names[1] = "i";
+	function->par_names[2] = "n";
 
 	/* Asc(s As String, i As Integer) As Integer */
 	 
 	name = (char*) malloc(4 * sizeof(char));
 	strcpy(name, "asc");
-	GST_add_function(table, name, true, true, 'i', "si");
+	function = GST_add_function(table, name, true, true, 'i', "si");
+
+	function->par_names[0] = "s";
+	function->par_names[1] = "i";
 
 	/* Chr(i As Integer) As String */
 
 	name = (char*) malloc(4 * sizeof(char));
 	strcpy(name, "chr");
-	GST_add_function(table, name, true, true, 's', "i");	
+	function = GST_add_function(table, name, true, true, 's', "i");	
+
+	function->par_names[0] = "i";
 }
 
 void GST_delete_tab(SYMTB_itemptr_g *RootPtr)

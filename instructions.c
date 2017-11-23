@@ -39,6 +39,20 @@ bool add_instruction(instruction_lst *list, char *inst)
 	return true;
 }
 
+bool generate_main(instruction_lst *list)
+{
+	if ( add_instruction(list, "label main") == false )
+		return false;
+	if ( add_instruction(list, "createframe") == false )
+		return false;
+	if ( add_instruction(list, "pushframe") == false )
+		return false;
+	if ( add_instruction(list, "defvar lf@$result") == false )
+		return false;
+
+	return true;
+}
+
 void print_list(instruction_lst list)
 {
 	instruction_t *tmp = list.first;

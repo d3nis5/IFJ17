@@ -11,38 +11,38 @@ Ttoken *get_token()
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
 	token->type = TKN_id;
-	token->attribute.string = "hello";
+	token->attribute.string = "var42";
 	pole[0] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_eq;
+	token->type = TKN_smcolon;
 	pole[1] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_id;
-	token->attribute.string = "hello";
+	token->type = TKN_int;
+	token->attribute.integer = 42;
 	pole[2] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_leq;
+	token->type = TKN_smcolon;
 	pole[3] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_int;
+	token->type = TKN_EOL;
 	pole[4] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_star;
+	token->type = KWD_as;
 	pole[5] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
-	token->type = TKN_dbl;
+	token->type = KWD_string;
 	pole[6] = token;
 
 	token = (Ttoken*) malloc(sizeof(Ttoken));
 	token->type = TKN_EOL;
 	pole[7] = token;
-/*
+
 	token = (Ttoken*) malloc(sizeof(Ttoken));
 	token->type = KWD_as;
 	pole[8] = token;
@@ -78,7 +78,7 @@ Ttoken *get_token()
 	token = (Ttoken*) malloc(sizeof(Ttoken));
 	token->type = TKN_EOL;
 	pole[16] = token;	
-
+/*
 	token = (Ttoken*) malloc(sizeof(Ttoken));
 	token->type = TKN_EOF;
 	pole[16] = token;

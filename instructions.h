@@ -33,6 +33,9 @@ void init_list(instruction_lst *list);
  */
 bool add_instruction(instruction_lst *list, char *inst);
 
+/* Vygeneruje instrukcie pre zaciatok hlavneho tela programu */
+bool generate_main(instruction_lst *list);
+
 /* Vypise vsetky instrukcie na stdout */
 void print_list(instruction_lst list);
 

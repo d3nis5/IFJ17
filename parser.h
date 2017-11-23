@@ -42,8 +42,9 @@ bool r_var_declaration(SYMTB_itemptr_l*);
 
 /* Pravidlo pre <VarDef> 
  * Definicia premennych
+ * var - premenna do ktorej priradujeme
  */
-bool r_var_definition(SYMTB_itemptr_l*);
+bool r_var_definition(SYMTB_itemptr_l*, SYMTB_itemptr_l var);
 
 /* Pravidlo pre <Assign> 
  * Priradenie hodnoty do premennej alebo zavolanie funkcie na pravej strane vyrazu
@@ -58,12 +59,12 @@ bool r_expr_list(SYMTB_itemptr_l);
 /* Pravidlo pre <ItemList> 
  * Zoznam parametrov pri deklarovani/ definicii funcii
  */
-bool r_item_list(SYMTB_itemptr_g);
+bool r_item_list(SYMTB_itemptr_g, bool definition);
 
 /* Pravidlo pre <Item2List> 
  * Pomocne pravidlo pre pravidlo <ItemList>
  */
-bool r_item2_list(SYMTB_itemptr_g);
+bool r_item2_list(SYMTB_itemptr_g, bool definition);
 
 /* Pravidlo pre <ParList> 
  * Zoznam parametrov funkcie pri jej volani
@@ -77,8 +78,9 @@ bool r_par2_list(SYMTB_itemptr_g);
 
 /* Pravidlo pre <RS> 
  * Prava strana priradenia pri pravidle <Assign>
+ * type - ocakavany typ
  */
-bool r_rhs(SYMTB_itemptr_l);
+bool r_rhs(SYMTB_itemptr_l, char type);
 
 /* Pravidlo pre <Stat> 
  * Statement - prikaz
