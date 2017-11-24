@@ -1,5 +1,6 @@
 #include "scanner.h"
 
+
 /* preskoci riadkovy komentar po koniec riadku */
 void ignor_ria_kom(int *c) { 
 	while((*c) != '\n') {
@@ -25,11 +26,80 @@ void ignor_blok_kom(int *c) {
 
 /* prevedie vsetky pismena parametra na male */
 char* to_lower_case(char* string) {
-	// -------- TODO --------
+	for(int i = 0; string[i]; i++) {
+		string[i] = tolower(string[i]);
+	}
+	return string;
+}
+
+/* prevedie string na pozadovany format, pouzitelni instrukciou jazyka IFJ17
+** @param string string, ktory treba preformatovat
+** @param mem_alloc pamat zatial naalokovana pre string. (v pripade reallocu zvacsena)
+*/
+char* format_string(char* string, int *mem_alloc) {
+	
+
+	int string_len = strlen(string);
+	int num_to_copy = 0;				//pocet bytov na skopirovanie pri posune
+	int prva_cif;
+	int druha_cif;
+	int pamat = *mem_alloc;
+
+	int i = 0;
+
+	//printf("Mem vo format: %d \n", pamat);	
+	while(string[i]) {
+
+
+		if((pamat - 1) < (i + 5)) {	
+ 
+			pamat = pamat*2;							//zdvojnasob mem_allocated
+			//string = realloc(string, pamat);					//reallocuj str_pomocny TODO
+			//printf("(format)Bola zvacsena alloc. pamat na %d\n", pamat);
+
+		}
+
+
+		if((string[i] <= 32 ) || (string[i] == 35) || (string[i] == 92) ) {
+
+			num_to_copy = (string_len - (i + 1));
+			memmove(&string[i+5], &string[i+1], num_to_copy);
+			string_len += 5;
+
+			prva_cif = ((string[i] /10) + 48); 		//prva cifra ascii hodnoty
+			druha_cif = ((string[i] %10) + 48);		//druha cifra ascii hodnoty
+
+			string[i] = 92;
+			string[i+1] = 92;
+			string[i+2] = '0';
+			string[i+3] = prva_cif;	
+			string[i+4] = druha_cif;
+
+			i += 5;
+			continue;
+		}
+
+		
+
+		i++;
+	}
+	*mem_alloc = pamat;
+	return string;
 }
 
 
-Ttoken* get_token(Ttoken *token) { 					//nemoze byt void ?????? nie
+/* zisti ci je identifikator keyword, ak ano vrati index token type kwd, ak nie vrati 0 cize ID */
+int is_kwd(char* ident) {
+	for(int i = 0; i < 35; i++) {
+		if((strcmp(kwds[i], ident) == 0)) {
+			return (i + 21);				//vrati index do TKN_type
+		}
+	}
+	return 0;								//ostane ID
+}
+
+
+Ttoken* get_token(Ttoken *token) { 	
 	
 	TKN_type stav; //aktualny stav
 
@@ -40,9 +110,12 @@ Ttoken* get_token(Ttoken *token) { 					//nemoze byt void ?????? nie
 /*	}*/
 
 
+
 	int index; //index k roznym ucelom, treba vzdy nulovat
 
-	char *str_pomocny = (char*)malloc(ALOC);			//	TO CHECK - zatial 128.
+	int mem_allocated;
+
+	char *str_pomocny = malloc(ALOC);			//	TO CHECK - zatial 128. //odstranil som (char*)
 
 	int c = fgetc(SUBOR); //nacitam znaku
 
@@ -122,19 +195,30 @@ Ttoken* get_token(Ttoken *token) { 					//nemoze byt void ?????? nie
 
 		switch(stav) {
 			
+
 			case TKN_id :
 				index = 0;
+				mem_allocated = ALOC;				//alokovana pamat pre pomocny string
 				while(isdigit(c) || isalpha(c) || (c == '_')) {
+
+					if((mem_allocated - 1) == index) {
+						mem_allocated *= 2;									//zdvojnasob mem_allocated
+						str_pomocny = realloc(str_pomocny, mem_allocated);	//reallocuj str_pomocny
+						//printf("Bola zvacsena alloc. pamat na %d\n", mem_allocated);
+					}
+
 					str_pomocny[index] = c;
-					//token->attribute.st_ptr[index] = c; //ako sa pracuje so symtable ???
 					c = fgetc(SUBOR);
 					index++;
 				}
 				str_pomocny[index] = '\0';		//ukoncenie retazca
 
-				token->type = stav; 		 //priradi "stav", teda typ tokenu do tokenu
-				token->attribute.string = str_pomocny; //ulozi hodnotu tokenu
-				printf("ID je : %s \n", token->attribute.string);
+				str_pomocny = to_lower_case(str_pomocny);
+				token->type = is_kwd(str_pomocny); 		 //priradi "stav", teda typ tokenu do tokenu
+
+				token->attribute.string = str_pomocny;
+
+				//printf("ID je : %s \n", token->attribute.string);
 				break;
 
 
@@ -153,7 +237,7 @@ Ttoken* get_token(Ttoken *token) { 					//nemoze byt void ?????? nie
 
 					token->type = TKN_int;							//int ostal integer
 					token->attribute.integer = atoi(str_pomocny);
-					printf("Cele cislo\n");
+					//printf("Cele cislo\n");
 					break;											// a skonci
 				}
 				else {	 //TO CHECK ci to ide takto spravit ??
@@ -166,12 +250,12 @@ Ttoken* get_token(Ttoken *token) { 					//nemoze byt void ?????? nie
 				
 
 			case TKN_dbl :	/* v pripade, ze v TKN_int pride bodka	*/
-				// ------------ TODO -----------
+
 				switch(c) {
 
 					case 'E' :
 					case 'e' :
-						printf("cele cislo s exponentom \n");
+						//printf("cele cislo s exponentom \n");
 
 						c = fgetc(SUBOR);
 						if(isdigit(c)) {
@@ -193,7 +277,7 @@ Ttoken* get_token(Ttoken *token) { 					//nemoze byt void ?????? nie
 						break;
 
 					case '.' :
-						printf("Normalny double \n");
+						//printf("Normalny double \n");
 						c = fgetc(SUBOR); 				//nacitaj prvy znak po bodke
 
 						if(!(isdigit(c))) {
@@ -227,6 +311,7 @@ Ttoken* get_token(Ttoken *token) { 					//nemoze byt void ?????? nie
 							}
 							else {
 								fprintf(stderr, "Lex Err: po exponente musi ist cislo, alebo +/-");
+								exit(1);
 							}
 							
 							c = fgetc(SUBOR);
@@ -244,35 +329,60 @@ Ttoken* get_token(Ttoken *token) { 					//nemoze byt void ?????? nie
 				token->type = TKN_dbl;
 				token->attribute.dble = strtod(str_pomocny, NULL);
 
-				printf("Double ma hodnotu: %lf \n", token->attribute.dble);
+				//printf("Double ma hodnotu: %lf \n", token->attribute.dble);
 
 				break;
 
 
 
-			case TKN_str :								//TODO treba doplnit re-alloc ak dojde pamat
+			case TKN_str :	
 				index = 0;
+				mem_allocated = ALOC;				//alokovana pamat pre pomocny string
 
-				if(c = fgetc(SUBOR) == '"') {		//ak zacina str spravne ...
+				if((c = fgetc(SUBOR)) == '"') {		//ak zacina str spravne ...
 
-					while(c = fgetc(SUBOR) != '"') { //kym neskonci s "
+					c = fgetc(SUBOR);
+
+					while((c != '"')) { //kym neskonci s "
 						
 						if(c == '\n') { 			//alebo kym nenarazi na koniec riadku
 							break;
 						} 
 
-						str_pomocny[index] = c;		//zapisuj znaky str, do pomocneho str,
+						if((mem_allocated - 1) == index + 1) {					// index plus 1 z dovodu \"
+							mem_allocated *= 2;									//zdvojnasob mem_allocated
+							str_pomocny = realloc(str_pomocny, mem_allocated);	//reallocuj str_pomocny
+							//printf("Bola zvacsena alloc. pamat na %d\n", mem_allocated);
+						}
+
+						str_pomocny[index] = c;									//zapisuj znaky str, do pomocneho str
+						c = fgetc(SUBOR);
+
+						if(c == '"') {											//ak narazis na ' " '
+							if(str_pomocny[index] == '\\') {					//zisti, ci nejde o pokus zapisat ju...
+								index++;
+								str_pomocny[index] = '"';
+								c = fgetc(SUBOR);
+							}
+						}
+
 						index++;
-					
+						
 					}
 
-					str_pomocny[index] = '\0'; //ukonci retazec
+					//printf("mem: %d\n", mem_allocated);
+
+					str_pomocny[index] = '\0'; 									//ukonci retazec
 					token->type = TKN_str;
-					strcpy(token->attribute.string, str_pomocny);
+					str_pomocny = to_lower_case(str_pomocny);
+					str_pomocny = format_string(str_pomocny, &mem_allocated);
+					token->attribute.string = str_pomocny;
+
 				}
 
 				else {
-					fprintf(stderr, "Chybne zadany string format je : !\" \" \n");					
+					fprintf(stderr, "Chybne zadany string format je : !\" \" \n");
+					exit(1);					
 				}
 				break;
 
@@ -318,6 +428,16 @@ Ttoken* get_token(Ttoken *token) { 					//nemoze byt void ?????? nie
 					break;
 				}
 
+			case TKN_EOL :
+
+				while(c = fgetc(SUBOR) == '\n') {
+					;
+				}
+
+				ungetc(c, SUBOR);
+				break;
+
+
 			default :
 				break;
 				
@@ -333,22 +453,7 @@ Ttoken* get_token(Ttoken *token) { 					//nemoze byt void ?????? nie
 	}
 
 
-	free(str_pomocny);
-
 	return token;
-	/* Zvysok TODO */
 
 }
 
-int main(){
-
-	Ttoken *tok = malloc(sizeof(Ttoken));
-	if(tok == NULL) {
-		fprintf(stderr, "Nepodarilo sa naalokovat pamat\n");
-		exit(1);
-	}
-
-	tok = get_token(tok);
-
-	/* bude odstranene, je tu len z dovodu nesorsich mojich testov */
-}
