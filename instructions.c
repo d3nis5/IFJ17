@@ -80,6 +80,5 @@ void delete_list(instruction_lst *list)
 	}
 	free(act->ins);		
 	free(act);
-	free(list);
 	list = NULL;
 }

@@ -42,7 +42,7 @@ bool r_var_declaration(SYMTB_itemptr_l*);
 
 /* Pravidlo pre <VarDef> 
  * Definicia premennych
- * var - premenna do ktorej priradujeme
+ * var - premenna do ktorej sa bude priradovat
  */
 bool r_var_definition(SYMTB_itemptr_l*, SYMTB_itemptr_l var);
 

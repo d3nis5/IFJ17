@@ -8,10 +8,12 @@ instruction_lst list;					/* paska instrukcii */
 
 Ttoken *token;
 
+SYMTB_itemptr_g actual_function = NULL;
 char ins_typ = 0;						/* typ vysledku precedencnej */
 bool in_scope = false;
 int par_counter = 0;
-
+unsigned if_counter = 0;
+unsigned while_counter = 0;
 
 /* TODO viac znakov EOL za sebou
  * typova kontrola lavej a pravej strany vyrazu a pri var_def
@@ -314,6 +316,7 @@ bool r_definition()
 
 	fc_name = token->attribute.string;
 	function = GST_add_function(&global_symtb, fc_name, false, false, 0, "");
+	actual_function = function;	
 
 	if ( function == NULL )
 	{
@@ -721,7 +724,7 @@ bool r_assign(SYMTB_itemptr_l local_symtb) 		/* TODO otestovat */
 			if ( ins_typ != 's' )
 			{
 				char instr[1000];
-				sprintf(instr, "move lf@%s lf@$result", var_name);
+				sprintf(instr, "move lf@%s lf@$result", var->var_name);
 			}
 			else
 			{
@@ -735,12 +738,12 @@ bool r_assign(SYMTB_itemptr_l local_symtb) 		/* TODO otestovat */
 			if ( ins_typ == 'i' )
 			{
 				char instr[1000];
-				sprintf(instr, "move lf@%s lf@$result", var_name);	
+				sprintf(instr, "move lf@%s lf@$result", var->var_name);	
 			}
 			else if ( ins_typ == 'd' )
 			{
 				char instr[1000];
-				sprintf(instr, "float2r2eint lf@%s lf@$result", var_name);	
+				sprintf(instr, "float2r2eint lf@%s lf@$result", var->var_name);	
 			}
 			else
 			{
@@ -755,12 +758,12 @@ bool r_assign(SYMTB_itemptr_l local_symtb) 		/* TODO otestovat */
 			if ( ins_typ == 'i' )
 			{
 				char instr[1000];
-				sprintf(instr, "int2float lf@%s lf@$result", var_name);	
+				sprintf(instr, "int2float lf@%s lf@$result", var->var_name);	
 			}
 			else if ( ins_typ == 'd' )
 			{
 				char instr[1000];
-				sprintf(instr, "move lf@%s lf@$result", var_name);	
+				sprintf(instr, "move lf@%s lf@$result", var->var_name);	
 			}
 			else
 			{
@@ -1520,6 +1523,8 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 			return false;
 		}
 		token = get_token();
+
+		if_counter++;
 	}
 	else if ( token->type == KWD_do )
 	{
@@ -1532,9 +1537,16 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 			err_code = SYNTAX_ERR;
 			return false;
 		}
-		
+			
 		token = get_token();
-	
+
+		char ord_while[100];
+		sprintf(ord_while, "while_%d", while_counter);
+		char while_label[100];
+		sprintf(while_label, "label %s",ord_while);	
+
+		add_instruction(&list, while_label);
+
 		if ( (err_code = vyhodnot_vyraz(&token, *local_symtb, false)) != 0 )
 		{
 			return false;
@@ -1548,6 +1560,31 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 
 		token = get_token();
 
+		if ( ins_typ == 'b' )
+		{
+			char instr[100];
+			sprintf(instr, "jumpifneq end_%s lf@$result bool@true", ord_while);
+			add_instruction(&list, instr);
+		}
+		else if ( ins_typ == 'i' )
+		{
+			char instr[100];
+			sprintf(instr, "jumpifeq end_%s lf@$result int@0", ord_while);
+			add_instruction(&list, instr);
+		}	
+		else if ( ins_typ == 'd' )
+		{
+			char instr[100];
+			sprintf(instr, "jumpifeq end_%s lf@$result float@0.0", ord_while);
+			add_instruction(&list, instr);
+		}	
+		else if ( ins_typ == 's' )
+		{
+			char instr[100];
+			sprintf(instr, "jumpifeq end_%s lf@$result string@", ord_while);
+			add_instruction(&list, instr);
+		}	
+
 		if ( r_stat_list(local_symtb) == false )
 		{
 			return false;
@@ -1558,7 +1595,15 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 			err_code = SYNTAX_ERR;
 			return false;
 		}
+		char jump_label[100];
+		sprintf(jump_label, "jump %s", ord_while);
+		add_instruction(&list, jump_label);
+			
+		char end_while_label[100];
+		sprintf(end_while_label, "label end_%s",ord_while);	
+		add_instruction(&list, end_while_label);
 
+		while_counter++;
 	}
 	else if ( token->type == KWD_return )
 	{
@@ -1575,8 +1620,56 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 		{
 			return false;
 		}
-	
-		
+
+		if ( actual_function->ret_type == 's' )
+		{
+			if ( ins_typ != 's' )
+			{
+				err_code = TYPE_ERR;
+				fprintf(stderr, "Navratovy typ funkcie sa nezhoduje s typom vracanej hodnoty\n");
+				return false;
+			}
+			else
+			{
+				add_instruction(&list,"move lf@return lf$result");
+			}
+		}
+		else if ( actual_function->ret_type == 'i' )	
+		{
+			if ( ins_typ == 's' )
+			{
+				err_code = TYPE_ERR;
+				fprintf(stderr, "Navratovy typ funkcie sa nezhoduje s typom vracanej hodnoty\n");
+				return false;
+			}
+			else if ( ins_typ == 'i' )
+			{
+				add_instruction(&list,"move lf@return lf$result");
+			}
+			else /* ins_typ = 'd' */
+			{
+				add_instruction(&list,"float2r2eint lf@return lf$result");	
+			}
+		}
+		else	/* 'd' */ 
+		{
+			if ( ins_typ == 's' )
+			{
+				err_code = TYPE_ERR;
+				fprintf(stderr, "Navratovy typ funkcie sa nezhoduje s typom vracanej hodnoty\n");
+				return false;
+			}
+			else if ( ins_typ == 'i' )
+			{
+				add_instruction(&list,"int2float lf@return lf$result");
+			}
+			else /* ins_typ = 'd' */
+			{
+				add_instruction(&list,"move lf@return lf$result");	
+			}
+
+		}
+		add_instruction(&list, "return"); 
 	}
 	else
 	{
