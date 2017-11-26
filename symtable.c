@@ -1,3 +1,15 @@
+/**
+ * Názov: symtable.c
+ * Projekt IFJ
+ * Prekladač zdrojového jazyka IFJ17 do cieľového jazyka IFJcode17
+ * Autori:
+ * Maroš Holko			xholko01
+ * Denis Leitner		xleitn02
+ * Vlastimil Rádsetoulal	xradse00
+ * Michal Štábel		xstabe00
+ */
+
+
 #include "symtable.h"
 
 
@@ -145,7 +157,7 @@ SYMTB_itemptr_l LST_add_var(SYMTB_itemptr_l *RootPtr, char *name, char type)
 			err_code = COMPILER_ERR; 
 			return NULL;
 		}
-
+		
 		new_var->var_name = name;
 		new_var->type = type;
 		new_var->lptr = NULL;

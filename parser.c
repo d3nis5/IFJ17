@@ -1,3 +1,15 @@
+/**
+ * Názov: parser.c
+ * Projekt IFJ
+ * Prekladač zdrojového jazyka IFJ17 do cieľového jazyka IFJcode17
+ * Autori:
+ * Maroš Holko			xholko01
+ * Denis Leitner		xleitn02
+ * Vlastimil Rádsetoulal	xradse00
+ * Michal Štábel		xstabe00
+ */
+
+
 #include "parser.h"
 
 
@@ -30,6 +42,7 @@ bool r_program()
 
 		add_instruction(&list, ".ifjcode17");
 		add_instruction(&list, "jump main");
+		build_all();		
 
 		if ( r_fc_dec() == false )
 		{
@@ -340,6 +353,7 @@ bool r_definition()
 			params = malloc((function->par_count+1) * sizeof(char));
 			strcpy(params,function->parameters); /* Kvoli kontrole typov parametrov */
 			function->par_count = 0;
+			err_code = 0;
 		}
 	}
 	
@@ -361,7 +375,7 @@ bool r_definition()
 			free(params);
 		return false;
 	}
-
+	
 	token = get_token();
 
 	if ( r_item_list(function, true) == false )
@@ -607,6 +621,8 @@ bool r_var_definition(SYMTB_itemptr_l *local_symtb, SYMTB_itemptr_l var)
 	
 		char *var_name = var->var_name;
 
+		token = get_token();
+
 		if ( (err_code = vyhodnot_vyraz(&token, *local_symtb, true)) != 0) 
 		{
 			return false;
@@ -618,6 +634,7 @@ bool r_var_definition(SYMTB_itemptr_l *local_symtb, SYMTB_itemptr_l var)
 			{
 				char instr[1000];
 				sprintf(instr, "move lf@%s lf@$result", var_name);
+				add_instruction(&list, instr);
 			}
 			else
 			{
@@ -632,11 +649,13 @@ bool r_var_definition(SYMTB_itemptr_l *local_symtb, SYMTB_itemptr_l var)
 			{
 				char instr[1000];
 				sprintf(instr, "move lf@%s lf@$result", var_name);	
+				add_instruction(&list, instr);
 			}
 			else if ( ins_typ == 'd' )
 			{
 				char instr[1000];
 				sprintf(instr, "float2r2eint lf@%s lf@$result", var_name);	
+				add_instruction(&list, instr);
 			}
 			else
 			{
@@ -652,11 +671,13 @@ bool r_var_definition(SYMTB_itemptr_l *local_symtb, SYMTB_itemptr_l var)
 			{
 				char instr[1000];
 				sprintf(instr, "int2float lf@%s lf@$result", var_name);	
+				add_instruction(&list, instr);
 			}
 			else if ( ins_typ == 'd' )
 			{
 				char instr[1000];
 				sprintf(instr, "move lf@%s lf@$result", var_name);	
+				add_instruction(&list, instr);
 			}
 			else
 			{
@@ -689,6 +710,7 @@ bool r_assign(SYMTB_itemptr_l local_symtb) 		/* TODO otestovat */
 {
 	SYMTB_itemptr_l var = NULL;
 
+
 	if ( token->type == TKN_id )
 	{
 		/* Simulacia pravidla '8' */
@@ -718,13 +740,15 @@ bool r_assign(SYMTB_itemptr_l local_symtb) 		/* TODO otestovat */
 		}
 
 		/* Kontrola typov oboch stran + pripadne pretypovanie */
-
+	
+	
 		if ( var->type == 's' )
 		{
-			if ( ins_typ != 's' )
+			if ( ins_typ == 's' )
 			{
 				char instr[1000];
 				sprintf(instr, "move lf@%s lf@$result", var->var_name);
+				add_instruction(&list, instr);
 			}
 			else
 			{
@@ -739,11 +763,13 @@ bool r_assign(SYMTB_itemptr_l local_symtb) 		/* TODO otestovat */
 			{
 				char instr[1000];
 				sprintf(instr, "move lf@%s lf@$result", var->var_name);	
+				add_instruction(&list, instr);
 			}
 			else if ( ins_typ == 'd' )
 			{
 				char instr[1000];
 				sprintf(instr, "float2r2eint lf@%s lf@$result", var->var_name);	
+				add_instruction(&list, instr);
 			}
 			else
 			{
@@ -759,11 +785,13 @@ bool r_assign(SYMTB_itemptr_l local_symtb) 		/* TODO otestovat */
 			{
 				char instr[1000];
 				sprintf(instr, "int2float lf@%s lf@$result", var->var_name);	
+				add_instruction(&list, instr);
 			}
 			else if ( ins_typ == 'd' )
 			{
 				char instr[1000];
 				sprintf(instr, "move lf@%s lf@$result", var->var_name);	
+				add_instruction(&list, instr);
 			}
 			else
 			{
@@ -786,7 +814,6 @@ bool r_assign(SYMTB_itemptr_l local_symtb) 		/* TODO otestovat */
 bool r_expr_list(SYMTB_itemptr_l local_symtb)
 {
 
-	printf("token %d\n", token->type);
 	if ( ( token->type == TKN_id ) || ( token->type == TKN_leftpar ) ||
 	( token->type == TKN_int ) || ( token->type == TKN_str ) ||
 	( token->type == TKN_dbl ) )
@@ -851,6 +878,12 @@ bool r_item_list(SYMTB_itemptr_g function, bool definition)
 		{
 			function->par_names[function->par_count] = token->attribute.string;
 			var = LST_add_var(&(function->local_symtb), token->attribute.string, 'i');
+			if ( err_code == -1 )
+			{
+				err_code = TYPE_ERR;
+				fprintf(stderr, "Nazvy parametrov funkcie sa zhoduju\n");
+				return false;
+			}
 		}
 
 		token = get_token();
@@ -896,7 +929,6 @@ bool r_item_list(SYMTB_itemptr_g function, bool definition)
 
 bool r_item2_list(SYMTB_itemptr_g function, bool definition)
 {
-	
 	if ( token->type == TKN_rightpar)
 	{
 		/* Simulacia pravidla '14' */
@@ -921,6 +953,12 @@ bool r_item2_list(SYMTB_itemptr_g function, bool definition)
 		{
 			function->par_names[function->par_count] = token->attribute.string;
 			var = LST_add_var(&(function->local_symtb), token->attribute.string, 'i');
+			if ( err_code == -1 )
+			{
+				err_code = TYPE_ERR;
+				fprintf(stderr, "Nazvy parametrov funkcie sa zhoduju\n");
+				return false;
+			}
 		}
 
 		token = get_token();
@@ -1179,6 +1217,7 @@ bool r_par_par(SYMTB_itemptr_g function)
 		par_counter++;	
 
 		token = get_token();
+
 		return true;
 	}
 	else
@@ -1229,7 +1268,8 @@ bool r_par2_list(SYMTB_itemptr_g function)
 
 bool r_rhs(SYMTB_itemptr_l local_symtb, char type)
 {
-	if ( token->type == TKN_id )
+	if ( (token->type == TKN_id) || (token->type == KWD_length) || (token->type == KWD_asc) ||
+	(token->type == KWD_chr) || (token->type == KWD_substr) )
 	{
 
 		SYMTB_itemptr_g function = GST_search(global_symtb, token->attribute.string);
@@ -1262,11 +1302,12 @@ bool r_rhs(SYMTB_itemptr_l local_symtb, char type)
 			}
 	
 			token = get_token();
-	
+
 			if ( r_par_list(function) == false )
 			{
 				return false;
 			}
+			
 	
 			if ( token->type != TKN_rightpar )
 			{
@@ -1283,6 +1324,8 @@ bool r_rhs(SYMTB_itemptr_l local_symtb, char type)
 			free(instr);		
 
 			add_instruction(&list, "popframe");
+	
+			ins_typ = function->ret_type;
 
 			if ( type == 'i' )
 			{
@@ -1293,11 +1336,12 @@ bool r_rhs(SYMTB_itemptr_l local_symtb, char type)
 				else if ( function->ret_type == 'd' )
 				{
 					add_instruction(&list, "float2r2eint lf@$result tf@return");
+					ins_typ = 'i';
 				}
 				else
 				{
 					err_code = TYPE_ERR;
-					fprintf(stderr, "Nevhodne typy lavej a pravej strany vyrazu");
+					fprintf(stderr, "Nevhodne typy lavej a pravej strany vyrazu\n");
 					return false;
 				}	
 
@@ -1311,11 +1355,12 @@ bool r_rhs(SYMTB_itemptr_l local_symtb, char type)
 				else if ( function->ret_type == 'i' )
 				{
 					add_instruction(&list, "int2float lf@$result tf@return");
+					ins_typ = 'd';
 				}
 				else
 				{
 					err_code = TYPE_ERR;
-					fprintf(stderr, "Nevhodne typy lavej a pravej strany vyrazu");
+					fprintf(stderr, "Nevhodne typy lavej a pravej strany vyrazu\n");
 					return false;
 				}	
 			}
@@ -1324,14 +1369,15 @@ bool r_rhs(SYMTB_itemptr_l local_symtb, char type)
 				if ( function->ret_type != 's' )
 				{
 					err_code = TYPE_ERR;
-					fprintf(stderr, "Nevhodne typy lavej a pravej strany vyrazu");
+					fprintf(stderr, "Nevhodne typy lavej a pravej strany vyrazu\n");
 					return false;
 				}
 				else
 				{
-					add_instruction(&list, "int2float lf@$result tf@return");
+					add_instruction(&list, "move lf@$result tf@return");
 				}
-			}	
+			}
+
 			token = get_token();
 		}
 	}
@@ -1344,7 +1390,6 @@ bool r_rhs(SYMTB_itemptr_l local_symtb, char type)
 		variable:
 		if ( (err_code = vyhodnot_vyraz(&token, local_symtb, true)) != 0 )
 		{
-			printf("err_code = %d\n", err_code);
 			return false;
 		}
 	}
@@ -1369,7 +1414,7 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 			return false;
 		}
 	}
-	else if ( token->type == TKN_id )
+	else if (token->type == TKN_id)
 	{
 		/* Simulacia pravidla '27' */
 
@@ -1467,6 +1512,32 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 			return false;
 		}
 
+
+		if ( ins_typ == 'b' )
+		{
+			char instr[100];
+			sprintf(instr, "jumpifneq else_%d lf@$result bool@true", if_counter );
+			add_instruction(&list, instr);
+		}
+		else if ( ins_typ == 'i' )
+		{
+			char instr[100];
+			sprintf(instr, "jumpifeq else_%d lf@$result int@0", if_counter);
+			add_instruction(&list, instr);
+		}	
+		else if ( ins_typ == 'd' )
+		{
+			char instr[100];
+			sprintf(instr, "jumpifeq else_%d lf@$result float@0.0", if_counter);
+			add_instruction(&list, instr);
+		}	
+		else if ( ins_typ == 's' )
+		{
+			char instr[100];
+			sprintf(instr, "jumpifeq else_%d lf@$result string@", if_counter);
+			add_instruction(&list, instr);
+		}	
+
 		
 		if ( token->type != KWD_then )
 		{
@@ -1502,13 +1573,25 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 			return false;
 		}
 
+		char jmp_end[100];
+		sprintf(jmp_end, "jump endif_%d", if_counter );
+		add_instruction(&list, jmp_end);
+
+		char else_if[100];
+		sprintf(else_if, "label else_%d", if_counter );
+		add_instruction(&list, else_if);
+
 		token = get_token();
 
 		if ( r_stat_list(local_symtb) == false )
 		{
 			return false;
 		}
-			
+		
+		char end_if[100];
+		sprintf(end_if, "label endif_%d", if_counter );
+		add_instruction(&list, end_if);
+		
 		if ( token->type != KWD_end )
 		{
 			err_code = SYNTAX_ERR;
@@ -1551,6 +1634,7 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 		{
 			return false;
 		}
+	
 
 		if ( token->type != TKN_EOL )	
 		{
@@ -1595,6 +1679,9 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 			err_code = SYNTAX_ERR;
 			return false;
 		}
+
+		token = get_token();	
+
 		char jump_label[100];
 		sprintf(jump_label, "jump %s", ord_while);
 		add_instruction(&list, jump_label);
@@ -1608,6 +1695,8 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 	else if ( token->type == KWD_return )
 	{
 		/* Simulacia pravidla '26' */
+
+		token = get_token();
 
 		if ( in_scope == true )
 		{
@@ -1631,7 +1720,7 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 			}
 			else
 			{
-				add_instruction(&list,"move lf@return lf$result");
+				add_instruction(&list,"move lf@return lf@$result");
 			}
 		}
 		else if ( actual_function->ret_type == 'i' )	
@@ -1644,11 +1733,11 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 			}
 			else if ( ins_typ == 'i' )
 			{
-				add_instruction(&list,"move lf@return lf$result");
+				add_instruction(&list,"move lf@return lf@$result");
 			}
 			else /* ins_typ = 'd' */
 			{
-				add_instruction(&list,"float2r2eint lf@return lf$result");	
+				add_instruction(&list,"float2r2eint lf@return lf@$result");	
 			}
 		}
 		else	/* 'd' */ 
@@ -1661,11 +1750,11 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 			}
 			else if ( ins_typ == 'i' )
 			{
-				add_instruction(&list,"int2float lf@return lf$result");
+				add_instruction(&list,"int2float lf@return lf@$result");
 			}
 			else /* ins_typ = 'd' */
 			{
-				add_instruction(&list,"move lf@return lf$result");	
+				add_instruction(&list,"move lf@return lf@$result");	
 			}
 
 		}
@@ -1746,6 +1835,7 @@ bool r_stat_list(SYMTB_itemptr_l *local_symtb)
 			return false;
 		}
 	
+
 		token = get_token();
 			
 		if ( r_stat_list(local_symtb) == false )
@@ -1823,8 +1913,6 @@ int main()
 	SYMTB_itemptr_l local = NULL;
 	SYMTB_itemptr_l tmp = NULL;	
 
-	token = get_token();
-
 /*
 	GST_add_function(&global_symtb, "hello", false, true, 's', "i");	
 	LST_add_var(&(global_symtb->local_symtb),"hell", 's');
@@ -1859,38 +1947,36 @@ int main()
 	GST_add_function(&global_symtb, "christ", true, true, 's', "si");	
 	GST_add_function(&global_symtb, "morning", true, true, 's', "si");	*/
 
-
-	GST_add_function(&global_symtb, "function", true, false, 's', "s");	
-	LST_add_var(&(global_symtb->local_symtb), "var42", 'i');		
-
-	
-
-	Print_tree_g(global_symtb);
-
-	global_symtb->par_names[0] = "par1";
-
+	GST_add_builtin(&global_symtb);
 	init_list(&list);
 
+	token = get_token();
 
-	if ( r_par_par(global_symtb) == true )
-		printf("OK\n");
+	if ( r_program() == true )
+	{
+	//	printf("OK\n");
+		print_list(list);
+		return 0;
+	}
 	else
 	{
-		if ( err_code == SEMANT_ERR )
-			printf("SEMANTIC ERROR\n");
+/*		if ( err_code == SEMANT_ERR )
+			printf("\n\nSEMANTIC ERROR\n");
 		else if ( err_code == SYNTAX_ERR )
-			printf("SYNTAX ERROR\n");
+			printf("\n\nSYNTAX ERROR\n");
 		else if ( err_code == TYPE_ERR )
-			printf("TYPE ERROR\n");
+			printf("\n\nTYPE ERROR\n");
 		else
-			printf("OTHER ERROR\n");
+			printf("\n\nOTHER ERROR\n");*/
+		return err_code;
 	}
 
 
-	Print_tree_g(global_symtb);
-	Print_tree_l(global_symtb->local_symtb);
+//	Print_tree_g(global_symtb);
+//	Print_tree_l(scope_symtb);
 
-	print_list(list);
+//	printf("\n\n");
+
 	
 	return 0;
 }

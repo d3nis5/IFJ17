@@ -1,3 +1,15 @@
+/**
+ * Názov: error.h
+ * Projekt IFJ
+ * Prekladač zdrojového jazyka IFJ17 do cieľového jazyka IFJcode17
+ * Autori:
+ * Maroš Holko			xholko01
+ * Denis Leitner		xleitn02
+ * Vlastimil Rádsetoulal	xradse00
+ * Michal Štábel		xstabe00
+ */
+
+
 #ifndef ERROR_H
 #define ERROR_H
 

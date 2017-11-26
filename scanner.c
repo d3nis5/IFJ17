@@ -1,4 +1,56 @@
+/**
+ * Názov: scanner.c
+ * Projekt IFJ
+ * Prekladač zdrojového jazyka IFJ17 do cieľového jazyka IFJcode17
+ * Autori:
+ * Maroš Holko			xholko01
+ * Denis Leitner		xleitn02
+ * Vlastimil Rádsetoulal	xradse00
+ * Michal Štábel		xstabe00
+ */
+
+
 #include "scanner.h"
+
+
+char kwds[35][14] = {
+	 "as", //idx = 21
+	"asc",
+	"declare",
+ 	"dim",
+	"do",
+	"double",
+	"else",
+	"end",
+	"chr",
+	"function",
+	"if",
+	"input",
+	"integer",
+	"length",
+	"loop",
+	"print",
+	"return",
+	"scope",
+	"string",
+	"substr",
+	"then",
+	"while",
+
+	"and",
+	"boolean",
+	"continue",
+	"elseif",
+	"exit",
+	"false",
+	"for",
+	"next",
+	"not",
+	"or",
+	"shared",
+	"static",
+	"true", //idx = 55
+};
 
 
 /* preskoci riadkovy komentar po koniec riadku */
@@ -99,9 +151,9 @@ int is_kwd(char* ident) {
 }
 
 
-Ttoken* get_token(Ttoken *token) { 	
+Ttoken* get_token() { 	
 	
-	TKN_type stav; //aktualny stav
+	TKN_type stav = -42; //aktualny stav
 
 /*	Ttoken *token = malloc(sizeof(Ttoken));*/
 /*	if(token == NULL) {*/
@@ -110,30 +162,35 @@ Ttoken* get_token(Ttoken *token) {
 /*	}*/
 
 
+	Ttoken *token = malloc(sizeof(Ttoken));
 
-	int index; //index k roznym ucelom, treba vzdy nulovat
+	int index = 0; //index k roznym ucelom, treba vzdy nulovat
 
 	int mem_allocated;
 
 	char *str_pomocny = malloc(ALOC);			//	TO CHECK - zatial 128. //odstranil som (char*)
 
 	int c = fgetc(SUBOR); //nacitam znaku
+	
 
 	while(!(feof(SUBOR))) { //kym nenarazis na koniec suboru
 
-	
-		if((isspace(c)) && (c != '\n')) { //ak je ine prazdne miesto a stav nie je eol
+			
+		while((isspace(c)) && (c != '\n')) { //ak je ine prazdne miesto a stav nie je eol
 			c = fgetc(SUBOR); //nacitaj dalsi znak	
-			continue;		  // a pokracuj vo vyhodnocovani
+			//continue;		  // a pokracuj vo vyhodnocovani
 
 		}
+
+
+		if(c == '\'') { //ak je apostrof, ide o riadkovy koment
+			printf("koment\n");
+			ignor_ria_kom(&c);			//pozn: je nacitany \n. Predat EOL token ci nie ??? ***
+		}
+
 
 		if(c == '\n') {			//ak je c znak konca riadku
 			token->type = TKN_EOL;
-		}
-
-		if(c == '\'') { //ak je apostrof, ide o riadkovy koment
-			ignor_ria_kom(&c);			//pozn: je nacitany \n. Predat EOL token ci nie ??? ***
 		}
 
 		if(c == '+') {
@@ -170,6 +227,10 @@ Ttoken* get_token(Ttoken *token) {
 
 		if(c == ';') {
 			token->type = TKN_smcolon;
+		}
+
+		if(c == ',') {
+			token->type = TKN_colon;
 		}
 
 		if(c == '(') {
@@ -211,6 +272,7 @@ Ttoken* get_token(Ttoken *token) {
 					c = fgetc(SUBOR);
 					index++;
 				}
+				ungetc(c, SUBOR);
 				str_pomocny[index] = '\0';		//ukoncenie retazca
 
 				str_pomocny = to_lower_case(str_pomocny);
@@ -224,7 +286,6 @@ Ttoken* get_token(Ttoken *token) {
 
 			case TKN_int :
 				index = 0;
-
 				while(isdigit(c)) { //ak je znak cislo
 					str_pomocny[index] = c; //uloz znak do pomocneho stringu
 					c = fgetc(SUBOR); // nacitaj dalsi znak
@@ -234,7 +295,6 @@ Ttoken* get_token(Ttoken *token) {
 				if(!((c == 'E') || (c == 'e') || (c == '.'))) { 	//ak nejde o double
 					ungetc(c, SUBOR); 								//vrat posledny znak
 					str_pomocny[index] = '\0'; 						//koniec retazca
-
 					token->type = TKN_int;							//int ostal integer
 					token->attribute.integer = atoi(str_pomocny);
 					//printf("Cele cislo\n");
@@ -245,8 +305,6 @@ Ttoken* get_token(Ttoken *token) {
 					str_pomocny[index] = c;							//do stringu sa prida bodka
 					index++;
 				}													//ziaden break -> pokracuje do double.
-
-				
 				
 
 			case TKN_dbl :	/* v pripade, ze v TKN_int pride bodka	*/
@@ -397,7 +455,7 @@ Ttoken* get_token(Ttoken *token) {
 				else { //je to lomitko ...
 					token->type = TKN_slash;
 				}
-
+				break;
 
 
 
@@ -419,12 +477,13 @@ Ttoken* get_token(Ttoken *token) {
 
 			case TKN_gt : // to iste ako TKN_less, ale naopak - neq ...	
 
-				if(c = fgetc(SUBOR) == '=') {		//ak po > nasleduje =
+				if((c = fgetc(SUBOR)) == '=') {		//ak po > nasleduje =
 					token->type = TKN_geq;
 					break;
 				}
 				else {				//ak po > nasleduje hocico ine
 					token->type = TKN_gt;
+					ungetc(c, SUBOR);
 					break;
 				}
 
@@ -452,7 +511,13 @@ Ttoken* get_token(Ttoken *token) {
 		token->type = TKN_EOF;
 	}
 
-
+	/*if ( token->type == TKN_int )
+		printf("%d %d\n", token->type, token->attribute.integer);
+	else if ( token->type == TKN_dbl )
+		printf("%d %g\n", token->type, token->attribute.dble);
+	else
+		printf("%d %s\n", token->type, token->attribute.string);
+	*/	
 	return token;
 
 }

@@ -1,14 +1,26 @@
+/**
+ * Názov: parser.h
+ * Projekt IFJ
+ * Prekladač zdrojového jazyka IFJ17 do cieľového jazyka IFJcode17
+ * Autori:
+ * Maroš Holko			xholko01
+ * Denis Leitner		xleitn02
+ * Vlastimil Rádsetoulal	xradse00
+ * Michal Štábel		xstabe00
+ */
+
+
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "token.h"
-#include "precedSA.h"
+#include "precedsa.h"
 #include "symtable.h"
 #include "error.h"
 #include "instructions.h"
+#include "gener_buildin_fce.h"
 
-/* TODO zmazat */
-#include "gettoken.h"
+#include "scanner.h"
 
 
 

@@ -1,3 +1,15 @@
+/**
+ * Názov: scanner.h
+ * Projekt IFJ
+ * Prekladač zdrojového jazyka IFJ17 do cieľového jazyka IFJcode17
+ * Autori:
+ * Maroš Holko			xholko01
+ * Denis Leitner		xleitn02
+ * Vlastimil Rádsetoulal	xradse00
+ * Michal Štábel		xstabe00
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -7,45 +19,6 @@
 
 #define SUBOR stdin
 #define ALOC 128
-
-char kwds[35][14] = {
-	 "as", //idx = 21
-	"asc",
-	"declare",
- 	"dim",
-	"do",
-	"double",
-	"else",
-	"end",
-	"chr",
-	"function",
-	"if",
-	"input",
-	"integer",
-	"length",
-	"loop",
-	"print",
-	"return",
-	"scope",
-	"string",
-	"substr",
-	"then",
-	"while",
-
-	"and",
-	"boolean",
-	"continue",
-	"elseif",
-	"exit",
-	"false",
-	"for",
-	"next",
-	"not",
-	"or",
-	"shared",
-	"static",
-	"true", //idx = 55
-};
 
 /* preskoci riadkovy komentar po koniec riadku */
 void ignor_ria_kom(int *c);
@@ -66,5 +39,5 @@ char* format_string(char* string, int *mem_alloc);
 int is_kwd(char* ident);
 
 /* vrati ukazatel na strukturu token volajucemu */
-Ttoken* get_token(Ttoken *token);
+Ttoken* get_token();
 

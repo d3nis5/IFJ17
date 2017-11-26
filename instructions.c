@@ -1,3 +1,14 @@
+/**
+ * Názov: instruction.c
+ * Projekt IFJ
+ * Prekladač zdrojového jazyka IFJ17 do cieľového jazyka IFJcode17
+ * Autori:
+ * Maroš Holko			xholko01
+ * Denis Leitner		xleitn02
+ * Vlastimil Rádsetoulal	xradse00
+ * Michal Štábel		xstabe00
+ */
+
 #include "instructions.h"
 
 void init_list(instruction_lst *list)
@@ -48,6 +59,12 @@ bool generate_main(instruction_lst *list)
 	if ( add_instruction(list, "pushframe") == false )
 		return false;
 	if ( add_instruction(list, "defvar lf@$result") == false )
+		return false;
+	if ( add_instruction(list, "defvar gf@$tmp") == false )
+		return false;
+	if ( add_instruction(list, "defvar gf@$tmp2") == false )
+		return false;
+	if ( add_instruction(list, "defvar gf@$tmp3") == false )
 		return false;
 
 	return true;
