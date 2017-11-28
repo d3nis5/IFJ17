@@ -101,6 +101,14 @@ int vyhodnot_vyraz(Ttoken **token, SYMTB_itemptr_l locTab , bool assign)
                                 return COMPILER_ERR;
                             }
                             t=get_token();
+					
+							if ( t == NULL )
+							{
+                                tdStackDispose(&S);
+								tdStackDispose(&S2);
+								return LEXICAL_ERR;
+							}
+
                             if (t->type == TKN_id && GST_search(global_symtb, t->attribute.string)) //je funkcia?
                             {
                                 tdStackDispose(&S);
@@ -150,6 +158,14 @@ int vyhodnot_vyraz(Ttoken **token, SYMTB_itemptr_l locTab , bool assign)
                             }
 
                             t=get_token();
+			
+							if ( t == NULL )
+							{
+                                tdStackDispose(&S);
+								tdStackDispose(&S2);
+								return LEXICAL_ERR;
+							}
+
                             if (t->type == TKN_id && GST_search(global_symtb, t->attribute.string)) //bola funkcia deklarovana?
                             {
                                 tdStackDispose(&S);

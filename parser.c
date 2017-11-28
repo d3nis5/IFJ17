@@ -27,13 +27,14 @@ int par_counter = 0;
 unsigned if_counter = 0;
 unsigned while_counter = 0;
 
-/* TODO viac znakov EOL za sebou
- * typova kontrola lavej a pravej strany vyrazu a pri var_def
- */
-
-
 bool r_program()
 {
+
+	if ( skip_EOL() == false )
+	{
+		// TODO
+		return false;
+	}
 
 	if ( (token->type == KWD_scope) || (token->type == KWD_declare) || 
 	(token->type == KWD_function) )
@@ -67,10 +68,28 @@ bool r_program()
 		in_scope = true;
 
 		token = get_token();
-
+	
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+	
 		if ( token->type != TKN_EOL )
 		{
 			err_code = SYNTAX_ERR;
+			return false;
+		}
+
+		if ( skip_EOL() == false )
+		{
+			// TODO
+			return false;
+		}
+
+		if ( token == NULL )
+		{
+			// TODO
 			return false;
 		}
 
@@ -79,10 +98,11 @@ bool r_program()
 			return false;
 		}
 		
-
-		token = get_token();
-
-		/* TODO scope_symtb */
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
 
 
 		if ( r_stat_list(&scope_symtb) == false )
@@ -99,22 +119,44 @@ bool r_program()
 
 		token = get_token();
 		
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
 	
 		if ( token->type != KWD_scope )
 		{
+		printf("token = %d\n", token->type);
 			err_code = SYNTAX_ERR;
 			return false;
 		}
 		
 		token = get_token();
 
-		if ( token->type != TKN_EOL )
+		if ( token == NULL )
 		{
-			err_code = SYNTAX_ERR;
+			// TODO
 			return false;
 		}
 
-		token = get_token();
+		/*if ( token->type != TKN_EOL )
+		{
+			err_code = SYNTAX_ERR;
+			return false;
+		}*/
+
+		if ( skip_EOL() == false )
+		{
+			// TODO
+			return false;
+		}
+
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
 
 		if ( token->type != TKN_EOF )
 		{
@@ -151,7 +193,17 @@ bool r_fc_dec()
 			return false;
 		}
 	
-		token = get_token();
+		if ( skip_EOL() == false )
+		{
+			// TODO
+			return false;
+		}
+
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
 
 		if ( r_fc_dec() == false )	
 		{
@@ -174,7 +226,17 @@ bool r_fc_dec()
 			return false;
 		}
 
-		token = get_token();
+		if ( skip_EOL() == false )
+		{
+			// TODO
+			return false;
+		}
+
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
 
 		if ( r_fc_dec() == false )
 		{
@@ -213,6 +275,12 @@ bool r_declaration()
 	
 		token = get_token();
 
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		if ( token->type != KWD_function )	
 		{
 			err_code = SYNTAX_ERR;
@@ -220,6 +288,12 @@ bool r_declaration()
 		}
 
 		token = get_token();
+
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
 
 		if ( token->type != TKN_id )
 		{
@@ -256,6 +330,12 @@ bool r_declaration()
 
 		token = get_token();
 
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		if ( token->type != TKN_leftpar )
 		{
 			err_code = SYNTAX_ERR;
@@ -264,6 +344,12 @@ bool r_declaration()
 
 		token = get_token();
 		
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		if ( r_item_list(function, false) == false )	
 		{
 			return false;
@@ -276,12 +362,24 @@ bool r_declaration()
 		}
 		token = get_token();
 
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		if ( token->type != KWD_as )
 		{
 			err_code = SYNTAX_ERR;
 			return false;
 		}
 		token = get_token();
+
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
 
 		Ttoken *tmp = token;
 
@@ -320,6 +418,12 @@ bool r_definition()
 	}
 
 	token = get_token();
+
+	if ( token == NULL )
+	{
+		// TODO
+		return false;
+	}
 
 	if ( token->type != TKN_id )
 	{
@@ -368,6 +472,12 @@ bool r_definition()
 
 	token = get_token();
 
+	if ( token == NULL )
+	{
+		// TODO
+		return false;
+	}
+
 	if ( token->type != TKN_leftpar )
 	{
 		err_code = SYNTAX_ERR;
@@ -377,6 +487,12 @@ bool r_definition()
 	}
 	
 	token = get_token();
+
+	if ( token == NULL )
+	{
+		// TODO
+		return false;
+	}
 
 	if ( r_item_list(function, true) == false )
 	{
@@ -395,6 +511,12 @@ bool r_definition()
 
 	token = get_token();
 
+	if ( token == NULL )
+	{
+		// TODO
+		return false;
+	}
+
 	if ( token->type != KWD_as )
 	{
 		err_code = SYNTAX_ERR;
@@ -404,6 +526,12 @@ bool r_definition()
 	}
 
 	token = get_token();
+
+	if ( token == NULL )
+	{
+		// TODO
+		return false;
+	}
 
 	Ttoken *tmp = token;
 
@@ -456,7 +584,17 @@ bool r_definition()
 		return false;
 	}
 
-	token = get_token();
+	if ( skip_EOL() == false )
+	{
+		// TODO
+		return false;
+	}
+
+	if ( token == NULL )
+	{
+		// TODO
+		return false;
+	}
 
 	if ( r_stat_list(&(function->local_symtb)) == false )
 	{
@@ -477,6 +615,12 @@ bool r_definition()
 
 	token = get_token();
 
+	if ( token == NULL )
+	{
+		// TODO
+		return false;
+	}
+
 	if ( token->type != KWD_function )
 	{
 		err_code = SYNTAX_ERR;
@@ -486,6 +630,12 @@ bool r_definition()
 	}
 	
 	token = get_token();
+
+	if ( token == NULL )
+	{
+		// TODO
+		return false;
+	}
 
 	if ( params != NULL )
 	{
@@ -521,6 +671,12 @@ bool r_var_declaration(SYMTB_itemptr_l *local_symtb)
 
 		token = get_token();
 
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		if ( token->type != TKN_id )
 		{
 			err_code = SYNTAX_ERR;
@@ -554,6 +710,12 @@ bool r_var_declaration(SYMTB_itemptr_l *local_symtb)
 
 		token = get_token();
 		
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		/* Instrukcie pre definovanie premennej */
 		char *instr = malloc((strlen(var_name) + 11) * sizeof(char)); /* 11 -- strlen("defvar lf@\0") */
 		strcpy(instr, "defvar lf@");
@@ -568,6 +730,12 @@ bool r_var_declaration(SYMTB_itemptr_l *local_symtb)
 		}
 
 		token = get_token();
+
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
 
 		Ttoken *tmp = token;
 
@@ -623,14 +791,20 @@ bool r_var_definition(SYMTB_itemptr_l *local_symtb, SYMTB_itemptr_l var)
 
 		token = get_token();
 
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		if ( (err_code = vyhodnot_vyraz(&token, *local_symtb, true)) != 0) 
 		{
 			return false;
 		}
-		
+
 		if ( var->type == 's' )
 		{
-			if ( ins_typ != 's' )
+			if ( ins_typ == 's' )
 			{
 				char instr[1000];
 				sprintf(instr, "move lf@%s lf@$result", var_name);
@@ -726,6 +900,12 @@ bool r_assign(SYMTB_itemptr_l local_symtb) 		/* TODO otestovat */
 
 		token = get_token();
 
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		if ( token->type != TKN_eq )
 		{
 			err_code = SYNTAX_ERR;
@@ -733,6 +913,12 @@ bool r_assign(SYMTB_itemptr_l local_symtb) 		/* TODO otestovat */
 		}
 
 		token = get_token();
+
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
 
 		if ( r_rhs(local_symtb, var->type) == false )
 		{
@@ -835,6 +1021,12 @@ bool r_expr_list(SYMTB_itemptr_l local_symtb)
 
 		token = get_token();		
 
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		if ( r_expr_list(local_symtb) == false )
 		{
 			return false;
@@ -888,6 +1080,12 @@ bool r_item_list(SYMTB_itemptr_g function, bool definition)
 
 		token = get_token();
 
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		if ( token->type != KWD_as )
 		{
 			err_code = SYNTAX_ERR;
@@ -895,6 +1093,12 @@ bool r_item_list(SYMTB_itemptr_g function, bool definition)
 		}
 
 		token = get_token();
+
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
 
 		Ttoken *param = token;
 
@@ -941,6 +1145,13 @@ bool r_item2_list(SYMTB_itemptr_g function, bool definition)
 		/* Simulacia pravidla '15' */
 
 		token = get_token();
+
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		if ( token->type != TKN_id )
 		{
 			err_code = SYNTAX_ERR;
@@ -963,6 +1174,12 @@ bool r_item2_list(SYMTB_itemptr_g function, bool definition)
 
 		token = get_token();
 
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		if ( token->type != KWD_as )
 		{
 			err_code = SYNTAX_ERR;
@@ -971,6 +1188,12 @@ bool r_item2_list(SYMTB_itemptr_g function, bool definition)
 
 		token = get_token();
 		
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		Ttoken *param = token;
 
 		if ( r_type() == false )
@@ -1126,6 +1349,13 @@ bool r_par_par(SYMTB_itemptr_g function)
 		par_counter++;	
 	
 		token = get_token();
+		
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		return true;
 	}
 	else if ( token->type == TKN_int )
@@ -1158,6 +1388,13 @@ bool r_par_par(SYMTB_itemptr_g function)
 		par_counter++;	
 
 		token = get_token();
+		
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		return true;
 	}
 	else if ( token->type == TKN_dbl )
@@ -1191,6 +1428,13 @@ bool r_par_par(SYMTB_itemptr_g function)
 		par_counter++;	
 
 		token = get_token();
+		
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		return true;
 	}
 	else if ( token->type == TKN_str )
@@ -1218,6 +1462,12 @@ bool r_par_par(SYMTB_itemptr_g function)
 
 		token = get_token();
 
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		return true;
 	}
 	else
@@ -1244,6 +1494,12 @@ bool r_par2_list(SYMTB_itemptr_g function)
 		/* Simulacia pravidla '19' */
 
 		token = get_token();
+
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
 
 		if ( r_par_par(function) == false )
 		{
@@ -1295,6 +1551,12 @@ bool r_rhs(SYMTB_itemptr_l local_symtb, char type)
 	
 			token = get_token();
 	
+			if ( token == NULL )
+			{
+				// TODO
+				return false;
+			}
+
 			if ( token->type != TKN_leftpar )
 			{
 				err_code = SYNTAX_ERR;
@@ -1302,6 +1564,12 @@ bool r_rhs(SYMTB_itemptr_l local_symtb, char type)
 			}
 	
 			token = get_token();
+
+			if ( token == NULL )
+			{
+				// TODO
+				return false;
+			}
 
 			if ( r_par_list(function) == false )
 			{
@@ -1379,6 +1647,13 @@ bool r_rhs(SYMTB_itemptr_l local_symtb, char type)
 			}
 
 			token = get_token();
+			
+			if ( token == NULL )
+			{
+				// TODO
+				return false;
+			}
+
 		}
 	}
 	else if ( (token->type == TKN_leftpar) || ( token->type == TKN_int ) ||
@@ -1428,6 +1703,13 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 		/* Simulacia pravidla '22' */
 
 		token = get_token();
+			
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 
 		if ( token->type != TKN_id )
 		{
@@ -1474,12 +1756,25 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 		}
 	
 		token = get_token();
+		
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 	}
 	else if ( token->type == KWD_print )
 	{
 		/* Simulacia pravidla '23' */
 		
 		token = get_token();
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 	
 		if ( (err_code = vyhodnot_vyraz(&token, *local_symtb, true)) != 0 )
 		{
@@ -1496,6 +1791,12 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 
 		token = get_token();
 
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		if ( r_expr_list(*local_symtb) == false )
 		{
 			return false;
@@ -1506,6 +1807,12 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 		/* Simulacia pravidla '24' */
 
 		token = get_token();
+
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
 
 		if ( (err_code = vyhodnot_vyraz(&token, *local_symtb, false)) != 0 )
 		{
@@ -1547,13 +1854,29 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 
 		token = get_token();
 
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		if ( token->type != TKN_EOL )
 		{
 			err_code = SYNTAX_ERR;
 			return false;
 		}
 		
-		token = get_token();
+		if ( skip_EOL() == false )
+		{
+			// TODO
+			return false;
+		}
+
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
 
 		if ( r_stat_list(local_symtb) == false )
 		{
@@ -1567,9 +1890,27 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 		}
 		token = get_token();
 
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		if ( token->type != TKN_EOL ) 
 		{
 			err_code = SYNTAX_ERR;
+			return false;
+		}
+
+		if ( skip_EOL() == false )
+		{
+			// TODO
+			return false;
+		}
+
+		if ( token == NULL )
+		{
+			// TODO
 			return false;
 		}
 
@@ -1580,8 +1921,6 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 		char else_if[100];
 		sprintf(else_if, "label else_%d", if_counter );
 		add_instruction(&list, else_if);
-
-		token = get_token();
 
 		if ( r_stat_list(local_symtb) == false )
 		{
@@ -1600,12 +1939,24 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 
 		token = get_token();
 
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		if ( token->type != KWD_if)
 		{
 			err_code = SYNTAX_ERR;
 			return false;
 		}
 		token = get_token();
+
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
 
 		if_counter++;
 	}
@@ -1615,6 +1966,12 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 
 		token = get_token();
 
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		if ( token->type != KWD_while )
 		{
 			err_code = SYNTAX_ERR;
@@ -1622,6 +1979,12 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 		}
 			
 		token = get_token();
+
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
 
 		char ord_while[100];
 		sprintf(ord_while, "while_%d", while_counter);
@@ -1642,7 +2005,17 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 			return false;
 		}
 
-		token = get_token();
+		if ( skip_EOL() == false )
+		{
+			// TODO
+			return false;
+		}
+
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
 
 		if ( ins_typ == 'b' )
 		{
@@ -1682,6 +2055,12 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 
 		token = get_token();	
 
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		char jump_label[100];
 		sprintf(jump_label, "jump %s", ord_while);
 		add_instruction(&list, jump_label);
@@ -1697,6 +2076,12 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 		/* Simulacia pravidla '26' */
 
 		token = get_token();
+
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
 
 		if ( in_scope == true )
 		{
@@ -1782,43 +2167,6 @@ bool r_stat_list(SYMTB_itemptr_l *local_symtb)
 		return true;
 	}
 
-	#if 0
-
-	else if ( (token->type == KWD_input) || (token->type == KWD_print) ||
-	(token->type == KWD_if) || (token->type == KWD_do) || 
-	(token->type == KWD_return) || (token->type == TKN_id) || 
-	(token->type == KWD_dim) || (token->type == TKN_int) ||
-	(token->type == TKN_dbl) || (token->type == TKN_str) )
-	{
-		/* Simulacia pravidla '31' */
-		
-		if ( r_stat(local_symtb) == false )
-		{
-			err_code = SYNTAX_ERR;
-			return false;
-		}
-
-		if ( token->type != TKN_EOL )	
-		{
-			err_code = SYNTAX_ERR;
-			return false;
-		}
-
-		token = get_token();
-
-		if ( r_stat_list(local_symtb) == false )	
-		{
-			err_code = SYNTAX_ERR;
-			return false;
-		}
-	}
-	else
-	{
-		err_code = SYNTAX_ERR;
-		return false;
-	}
-
-	#endif
 
 	/* Simulacia pravidla '31' */
 
@@ -1835,9 +2183,18 @@ bool r_stat_list(SYMTB_itemptr_l *local_symtb)
 			return false;
 		}
 	
-
-		token = get_token();
+		if ( skip_EOL() == false )
+		{
+			// TODO
+			return false;
+		}	
 			
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		if ( r_stat_list(local_symtb) == false )
 		{
 			return false;
@@ -1856,6 +2213,13 @@ bool r_type()
 		/* Simulacia pravidla '32' */
 		
 		token = get_token();
+		
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		return true;
 	}
 	else if ( token->type == KWD_double )
@@ -1863,6 +2227,13 @@ bool r_type()
 		/* Simulacia pravidla '33' */
 
 		token = get_token();
+		
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		return true;
 	}
 	else if ( token->type == KWD_string )
@@ -1870,6 +2241,13 @@ bool r_type()
 		/* Simulacia pravidla '34' */
 
 		token = get_token();
+		
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+
 		return true;
 	}
 	else 
@@ -1907,45 +2285,25 @@ bool check_functions(SYMTB_itemptr_g RootPtr)
 }
 
 
+bool skip_EOL()
+{
+	while(token->type == TKN_EOL)
+	{
+		token = get_token();
+		
+		if ( token == NULL )
+		{
+			// TODO
+			return false;
+		}
+	}
+	return true;
+}
+
 int main()
 {
 
 	SYMTB_itemptr_l local = NULL;
-	SYMTB_itemptr_l tmp = NULL;	
-
-/*
-	GST_add_function(&global_symtb, "hello", false, true, 's', "i");	
-	LST_add_var(&(global_symtb->local_symtb),"hell", 's');
-
-	Print_tree_g(global_symtb);	
-
-	Print_tree_l(global_symtb->local_symtb);	
-
-	token = get_token();
-
-	if(r_rhs(local) == true)
-		printf("OK\n");
-	else
-	{
-		if (err_code == SYNTAX_ERR)
-			printf("SYNTAX ERROR\n");
-		else if (err_code == SEMANT_ERR)
-			printf("SEMANTIC ERROR\n");
-		else
-			printf("OTHER ERROR\n");
-	}
-*/	
-
-/*	GST_add_builtin(&global_symtb);
-
-	LST_add_var(&local, "hello", 'i');
-
-	GST_add_function(&global_symtb, "hell", true, true, 's', "si");	
-	GST_add_function(&global_symtb, "world", true, true, 's', "si");	
-	GST_add_function(&global_symtb, "hole", true, true, 's', "si");	
-	GST_add_function(&global_symtb, "jesus", true, true, 's', "si");	
-	GST_add_function(&global_symtb, "christ", true, true, 's', "si");	
-	GST_add_function(&global_symtb, "morning", true, true, 's', "si");	*/
 
 	GST_add_builtin(&global_symtb);
 	init_list(&list);
@@ -1956,6 +2314,7 @@ int main()
 	{
 	//	printf("OK\n");
 		print_list(list);
+		delete_list(&list);
 		return 0;
 	}
 	else
@@ -1968,50 +2327,13 @@ int main()
 			printf("\n\nTYPE ERROR\n");
 		else
 			printf("\n\nOTHER ERROR\n");*/
+		delete_list(&list);
 		return err_code;
 	}
 
 
 //	Print_tree_g(global_symtb);
 //	Print_tree_l(scope_symtb);
-
-//	printf("\n\n");
-
 	
 	return 0;
 }
-	
-
-
-
-	//token = get_token();
-		
-	/*if(r_var_declaration(&local) == true)
-		printf("OK\n");
-	else
-	{
-		if (err_code == SYNTAX_ERR)
-			printf("SYNTAX ERROR\n");
-		else if (err_code == SEMANT_ERR)
-			printf("SEMANTIC ERROR\n");
-	}
-
-	Print_tree_l(local);
-
-	GST_add_function(&global_symtb, "hello", true, false, 's', "si");	
-
-	token = get_token();
-	
-	if(r_definition() == true)
-		printf("OK\n");
-	else
-	{
-		if (err_code == 0)
-			printf("SYNTAX ERROR\n");
-		else if (err_code = SEMANT_ERR)
-			printf("SEMANTIC ERROR\n");
-	}
-
-	Print_tree_g(global_symtb);*/
-
-

@@ -120,5 +120,9 @@ char type2char(Ttoken *token);
 /* Skontroluje ci vsetky deklarovane funkcie boli definovane */
 bool check_functions(SYMTB_itemptr_g);
 
+/* Preskoci tokeny noveho riadku TKN_EOL 
+ * V pripade lexikalnej chyby vracia false, inak vracia true
+ */
+bool skip_EOL();
 
 #endif /* PARSER_H */
