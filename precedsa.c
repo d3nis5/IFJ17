@@ -1,15 +1,3 @@
-/**
- * Názov: precedSA.c
- * Projekt IFJ
- * Prekladač zdrojového jazyka IFJ17 do cieľového jazyka IFJcode17
- * Autori:
- * Maroš Holko			xholko01
- * Denis Leitner		xleitn02
- * Vlastimil Rádsetoulal	xradse00
- * Michal Štábel		xstabe00
- */
-
-
 #include "precedsa.h"
 #define MAXPOLE 10
 #define MAX_RET 150
@@ -39,7 +27,7 @@ char PrecTab[18][18]={
 int vyhodnot_vyraz(Ttoken **token, SYMTB_itemptr_l locTab , bool assign)
 {
 	int chyba;
-	char hell[MAX_RET];
+	char ret[MAX_RET];
 	char pravidlo;
 	int riadok,stlpec;
 	Ttoken *t, *t2, ts, th;	//t2 je pomocny pointer na token a ts a th je pomocny token
@@ -74,8 +62,8 @@ int vyhodnot_vyraz(Ttoken **token, SYMTB_itemptr_l locTab , bool assign)
 		return COMPILER_ERR;
 	}
 
-    snprintf(hell,MAX_RET,"CLEARS");	//vycisti datovy zasobnik
-    if (!add_instruction(&list, hell))
+    snprintf(ret,MAX_RET,"CLEARS");	//vycisti datovy zasobnik
+    if (!add_instruction(&list, ret))
 		return COMPILER_ERR;
 
 	do
@@ -101,14 +89,12 @@ int vyhodnot_vyraz(Ttoken **token, SYMTB_itemptr_l locTab , bool assign)
                                 return COMPILER_ERR;
                             }
                             t=get_token();
-					
-							if ( t == NULL )
+							if(t == NULL)
 							{
-                                tdStackDispose(&S);
-								tdStackDispose(&S2);
+								tdStackDispose(&S);
+								tdStackDispose(&S);
 								return LEXICAL_ERR;
 							}
-
                             if (t->type == TKN_id && GST_search(global_symtb, t->attribute.string)) //je funkcia?
                             {
                                 tdStackDispose(&S);
@@ -158,14 +144,12 @@ int vyhodnot_vyraz(Ttoken **token, SYMTB_itemptr_l locTab , bool assign)
                             }
 
                             t=get_token();
-			
-							if ( t == NULL )
-							{
+							if(t == NULL)
+                            {
                                 tdStackDispose(&S);
-								tdStackDispose(&S2);
-								return LEXICAL_ERR;
-							}
-
+                                tdStackDispose(&S);
+                                return LEXICAL_ERR;
+                            }
                             if (t->type == TKN_id && GST_search(global_symtb, t->attribute.string)) //bola funkcia deklarovana?
                             {
                                 tdStackDispose(&S);
@@ -261,8 +245,8 @@ int vyhodnot_vyraz(Ttoken **token, SYMTB_itemptr_l locTab , bool assign)
 	tdStackDispose(&S);
 	tdStackDispose(&S2);
 
-	snprintf(hell,MAX_RET,"POPS LF@$result");    //presunie vyslednu hodnotu do result premennej
-    if(!add_instruction(&list, hell))
+	snprintf(ret,MAX_RET,"POPS LF@$result");    //presunie vyslednu hodnotu do result premennej
+    if(!add_instruction(&list, ret))
         return COMPILER_ERR;
 
 
@@ -417,11 +401,11 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
     		if (!add_instruction(&list, ret))
         		return COMPILER_ERR;
 
-			snprintf(ret,MAX_RET,"POPS GF@$tmp1"); //do tmp1 ulozi operand 1
+			snprintf(ret,MAX_RET,"POPS GF@$tmp"); //do tmp ulozi operand 1
             if (!add_instruction(&list, ret))
                 return COMPILER_ERR;
 
-			snprintf(ret,MAX_RET,"CONCAT GF@$tmp3 GF@$tmp1 GF@$tmp2");  //konkatenacia
+			snprintf(ret,MAX_RET,"CONCAT GF@$tmp3 GF@$tmp GF@$tmp2");  //konkatenacia
             if(!add_instruction(&list, ret))
              	return COMPILER_ERR;
 
@@ -571,7 +555,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         {
             result_type='I';
 			ins_typ='i';
-			snprintf(ret,MAX_RET,"INT2FLOATS");    //pretypuje druhy operand
+			snprintf(ret,MAX_RET,"INT2FLOATS");    //pretypuje druhy operand na double
             if(!add_instruction(&list, ret))
                 return COMPILER_ERR;
 
@@ -579,7 +563,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
             if(!add_instruction(&list, ret))
                 return COMPILER_ERR;
 
-			snprintf(ret,MAX_RET,"INT2FLOATS");    //pretypuje prvy operand
+			snprintf(ret,MAX_RET,"INT2FLOATS");    //pretypuje prvy operand na double
             if(!add_instruction(&list, ret))
                 return COMPILER_ERR;
 
@@ -595,6 +579,128 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
             if(!add_instruction(&list, ret))
                 return COMPILER_ERR;
         }
+		//oba operandy su typu double
+		else if( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+				 ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) )
+		{
+			result_type='I';
+			ins_typ='i';
+			snprintf(ret,MAX_RET,"FLOAT2R2EINTS");    //pretypuje druhy operand na int
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+			
+			snprintf(ret,MAX_RET,"POPS GF@$tmp2");    //ulozi op2 do tmp2
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"FLOAT2R2EINTS");    //pretypuje prvy operand na int
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"PUSHS GF@$tmp2");    //vrati op2 na zasobnik
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"INT2FLOATS");    //pretypuje druhy operand na double
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"POPS GF@$tmp2");   //ulozi operand 2 do tmp2
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"INT2FLOATS");    //pretypuje prvy operand na double
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"PUSHS GF@$tmp2");    //ulozi druhy spat na zasobnik
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"DIVS");    //vydeli
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"FLOAT2INTS");    //pretypuje vysledok na int
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+		}
+		//prvy operand je double
+		else if(((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
+				((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')))
+		{
+			result_type='I';
+			ins_typ='i';
+			snprintf(ret,MAX_RET,"POPS GF@$tmp2");    //ulozi op2 do pomocnej premennej
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"FLOAT2R2EINTS");    //pretypuje op1 na int
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"PUSHS GF@$tmp2");    //ulozi op2 na zasobnik
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"INT2FLOATS");    //pretypuje druhy operand na double
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"POPS GF@$tmp2");   //ulozi operand 2 do tmp2
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"INT2FLOATS");    //pretypuje prvy operand na double
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"PUSHS GF@$tmp2");    //ulozi druhy spat na zasobnik
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"DIVS");    //vydeli
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"FLOAT2INTS");    //pretypuje vysledok na int
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+		}
+		//druhy operand je double
+		else if( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
+				 ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) )
+		{	
+			result_type='I';
+			ins_typ='i';
+			snprintf(ret,MAX_RET,"FLOAT2R2EINTS");    //pretypuje druhy operand na int
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"INT2FLOATS");    //pretypuje druhy operand na double
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"POPS GF@$tmp2");   //ulozi operand 2 do tmp2
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"INT2FLOATS");    //pretypuje prvy operand na double
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"PUSHS GF@$tmp2");    //ulozi druhy spat na zasobnik
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"DIVS");    //vydeli
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+
+			snprintf(ret,MAX_RET,"FLOAT2INTS");    //pretypuje vysledok na int
+            if(!add_instruction(&list, ret))
+                return COMPILER_ERR;
+		}
         else
             return TYPE_ERR;
     }
@@ -1403,7 +1509,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
             ins_typ='s';
 
 			int dlzka=strlen(t2->attribute.string);
-			if((str=malloc((14 + dlzka)*sizeof(char))) == NULL)
+			if((str=malloc((dlzka+14)*sizeof(char))) == NULL)
 			{
 				return COMPILER_ERR;
 			}

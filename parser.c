@@ -493,6 +493,7 @@ bool r_definition()
 		// TODO
 		return false;
 	}
+	
 
 	if ( r_item_list(function, true) == false )
 	{
@@ -500,6 +501,7 @@ bool r_definition()
 			free(params);
 		return false;
 	}
+	
 
 	if ( token->type != TKN_rightpar )
 	{
@@ -717,11 +719,10 @@ bool r_var_declaration(SYMTB_itemptr_l *local_symtb)
 		}
 
 		/* Instrukcie pre definovanie premennej */
-		char *instr = malloc((strlen(var_name) + 11) * sizeof(char)); /* 11 -- strlen("defvar lf@\0") */
+		char instr[1000];
 		strcpy(instr, "defvar lf@");
 		strcat(instr, var_name);
 		add_instruction(&list, instr);
-		free(instr);
 
 		if ( token->type != KWD_as )
 		{
@@ -753,13 +754,19 @@ bool r_var_declaration(SYMTB_itemptr_l *local_symtb)
 		{
 			case 'i' :
 				var->value.int_value = 0;
+				sprintf(instr, "move lf@%s int@0", var_name);
+				add_instruction(&list, instr);
 				break;
 			case 'd' :
 				var->value.dbl_value = 0.0;
+				sprintf(instr, "move lf@%s float@0.0", var_name);
+				add_instruction(&list, instr);
 				break;
 			case 's' :
 				var->value.str_value = malloc(sizeof(char));
 				strcpy(var->value.str_value, "");
+				sprintf(instr, "move lf@%s string@", var_name);
+				add_instruction(&list, instr);
 				break;
 		}
 		if ( r_var_definition(local_symtb, var) == false )
@@ -883,7 +890,6 @@ bool r_var_definition(SYMTB_itemptr_l *local_symtb, SYMTB_itemptr_l var)
 bool r_assign(SYMTB_itemptr_l local_symtb) 		/* TODO otestovat */
 {
 	SYMTB_itemptr_l var = NULL;
-
 
 	if ( token->type == TKN_id )
 	{
@@ -1225,7 +1231,7 @@ bool r_item2_list(SYMTB_itemptr_g function, bool definition)
 /* KONIEC r_item2_list() */
 
 
-bool r_par_list(SYMTB_itemptr_g function)
+bool r_par_list(SYMTB_itemptr_g function, SYMTB_itemptr_l local)
 {
 	par_counter = 0;
 
@@ -1238,11 +1244,11 @@ bool r_par_list(SYMTB_itemptr_g function)
 
 		return true;
 	}
-	else if ( r_par_par(function) == true )
+	else if ( r_par_par(function, local) == true )
 	{
 		/* Simulacia pravidla '17' */
 
-		if ( r_par2_list(function) == false )
+		if ( r_par2_list(function, local) == false )
 		{
 			return false;
 		}
@@ -1255,7 +1261,7 @@ bool r_par_list(SYMTB_itemptr_g function)
 	if ( par_counter != function->par_count )
 	{
 		err_code = SEMANT_ERR;
-		fprintf(stderr, "Nespravny pocet parametrov vo volani funkie\n");
+		fprintf(stderr, "Nespravny pocet parametrov vo volani funkcie\n");
 		return false;
 	}
 
@@ -1264,9 +1270,11 @@ bool r_par_list(SYMTB_itemptr_g function)
 /* KONIEC r_par_list() */
 
 
-bool r_par_par(SYMTB_itemptr_g function)
+bool r_par_par(SYMTB_itemptr_g function, SYMTB_itemptr_l local)
 {
 	char *var_name = function->par_names[par_counter];
+	strlen(var_name);
+		
 	char *instr = malloc((strlen(var_name) + 11) * sizeof(char)); /* 11 -- strlen("defvar tf@\0") */
 	sprintf(instr, "defvar tf@%s", var_name);
 	add_instruction(&list, instr);
@@ -1288,7 +1296,7 @@ bool r_par_par(SYMTB_itemptr_g function)
 	
 		SYMTB_itemptr_l var = NULL;	
 
-		if ( (var = LST_search(function->local_symtb, token->attribute.string)) == NULL)
+		if ( (var = LST_search(local, token->attribute.string)) == NULL)
 		{
 			err_code = SEMANT_ERR;
 			fprintf(stderr, "Nedefinovana premenna\n");
@@ -1480,7 +1488,7 @@ bool r_par_par(SYMTB_itemptr_g function)
 /* KONIEC r_par_par() */
 
 
-bool r_par2_list(SYMTB_itemptr_g function)
+bool r_par2_list(SYMTB_itemptr_g function, SYMTB_itemptr_l local)
 {
 	if ( token->type == TKN_rightpar )
 	{
@@ -1501,12 +1509,12 @@ bool r_par2_list(SYMTB_itemptr_g function)
 			return false;
 		}
 
-		if ( r_par_par(function) == false )
+		if ( r_par_par(function, local) == false )
 		{
 			return false;
 		}
 
-		if ( r_par2_list(function) == false )
+		if ( r_par2_list(function, local) == false )
 		{
 			return false;
 		}
@@ -1524,6 +1532,7 @@ bool r_par2_list(SYMTB_itemptr_g function)
 
 bool r_rhs(SYMTB_itemptr_l local_symtb, char type)
 {
+	
 	if ( (token->type == TKN_id) || (token->type == KWD_length) || (token->type == KWD_asc) ||
 	(token->type == KWD_chr) || (token->type == KWD_substr) )
 	{
@@ -1539,7 +1548,8 @@ bool r_rhs(SYMTB_itemptr_l local_symtb, char type)
 		else
 		{
 			/* Simulacia pravidla '21' */
-		
+	
+				
 			if ( (function->fc_declared == false) && (function->fc_defined == false))
 			{
 				/* Funkcia nebola deklarovana a rekurzivne vola sama seba */
@@ -1571,7 +1581,7 @@ bool r_rhs(SYMTB_itemptr_l local_symtb, char type)
 				return false;
 			}
 
-			if ( r_par_list(function) == false )
+			if ( r_par_list(function, local_symtb) == false )
 			{
 				return false;
 			}
@@ -1727,6 +1737,7 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 		}
 		else
 		{
+			add_instruction(&list, "write string@?\\032");
 			char *instr = NULL;
 			switch(var->type)
 			{
@@ -1807,6 +1818,9 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 		/* Simulacia pravidla '24' */
 
 		token = get_token();
+	
+		int actual_if = if_counter;
+		if_counter++;
 
 		if ( token == NULL )
 		{
@@ -1819,29 +1833,28 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 			return false;
 		}
 
-
 		if ( ins_typ == 'b' )
 		{
 			char instr[100];
-			sprintf(instr, "jumpifneq else_%d lf@$result bool@true", if_counter );
+			sprintf(instr, "jumpifneq else_%d lf@$result bool@true", actual_if );
 			add_instruction(&list, instr);
 		}
 		else if ( ins_typ == 'i' )
 		{
 			char instr[100];
-			sprintf(instr, "jumpifeq else_%d lf@$result int@0", if_counter);
+			sprintf(instr, "jumpifeq else_%d lf@$result int@0", actual_if);
 			add_instruction(&list, instr);
 		}	
 		else if ( ins_typ == 'd' )
 		{
 			char instr[100];
-			sprintf(instr, "jumpifeq else_%d lf@$result float@0.0", if_counter);
+			sprintf(instr, "jumpifeq else_%d lf@$result float@0.0", actual_if);
 			add_instruction(&list, instr);
 		}	
 		else if ( ins_typ == 's' )
 		{
 			char instr[100];
-			sprintf(instr, "jumpifeq else_%d lf@$result string@", if_counter);
+			sprintf(instr, "jumpifeq else_%d lf@$result string@", actual_if);
 			add_instruction(&list, instr);
 		}	
 
@@ -1915,11 +1928,11 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 		}
 
 		char jmp_end[100];
-		sprintf(jmp_end, "jump endif_%d", if_counter );
+		sprintf(jmp_end, "jump endif_%d", actual_if );
 		add_instruction(&list, jmp_end);
 
 		char else_if[100];
-		sprintf(else_if, "label else_%d", if_counter );
+		sprintf(else_if, "label else_%d", actual_if );
 		add_instruction(&list, else_if);
 
 		if ( r_stat_list(local_symtb) == false )
@@ -1928,7 +1941,7 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 		}
 		
 		char end_if[100];
-		sprintf(end_if, "label endif_%d", if_counter );
+		sprintf(end_if, "label endif_%d", actual_if );
 		add_instruction(&list, end_if);
 		
 		if ( token->type != KWD_end )
@@ -1958,11 +1971,13 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 			return false;
 		}
 
-		if_counter++;
 	}
 	else if ( token->type == KWD_do )
 	{
 		/* Simulacia pravidla '25' */
+
+		int actual_while = while_counter;
+		while_counter++;
 
 		token = get_token();
 
@@ -1987,7 +2002,7 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 		}
 
 		char ord_while[100];
-		sprintf(ord_while, "while_%d", while_counter);
+		sprintf(ord_while, "while_%d", actual_while);
 		char while_label[100];
 		sprintf(while_label, "label %s",ord_while);	
 
@@ -1998,7 +2013,6 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 			return false;
 		}
 	
-
 		if ( token->type != TKN_EOL )	
 		{
 			err_code = SYNTAX_ERR;
@@ -2068,8 +2082,6 @@ bool r_stat(SYMTB_itemptr_l *local_symtb)		/* TODO otestovat */
 		char end_while_label[100];
 		sprintf(end_while_label, "label end_%s",ord_while);	
 		add_instruction(&list, end_while_label);
-
-		while_counter++;
 	}
 	else if ( token->type == KWD_return )
 	{

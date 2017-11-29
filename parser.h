@@ -81,12 +81,12 @@ bool r_item2_list(SYMTB_itemptr_g, bool definition);
 /* Pravidlo pre <ParList> 
  * Zoznam parametrov funkcie pri jej volani
  */
-bool r_par_list(SYMTB_itemptr_g);
+bool r_par_list(SYMTB_itemptr_g, SYMTB_itemptr_l);
 
 /* Pravidlo pre <Par2List>
  * Pomocne pravidlo pre pravidlo <ParList>
  */
-bool r_par2_list(SYMTB_itemptr_g);
+bool r_par2_list(SYMTB_itemptr_g, SYMTB_itemptr_l);
 
 /* Pravidlo pre <RS> 
  * Prava strana priradenia pri pravidle <Assign>
@@ -112,7 +112,7 @@ bool r_type();
 /* Pravidlo pre <ParPar> 
  * Typy parametrov pri volani funkcie
  */
-bool r_par_par(SYMTB_itemptr_g);
+bool r_par_par(SYMTB_itemptr_g, SYMTB_itemptr_l);
 
 /* Vrati datovy typ tokenu ako 1 znak {'i', 's', 'd'} */
 char type2char(Ttoken *token);

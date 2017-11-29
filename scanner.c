@@ -43,6 +43,11 @@ char kwds[35][14] = {
 /* preskoci riadkovy komentar po koniec riadku */
 void ignor_ria_kom(int *c) {
 	while((*c) != '\n') {
+		if ( *c == EOF )
+		{
+			ungetc(*c, SUBOR);
+			return;
+		}
 		(*c) = fgetc(SUBOR);
 	}
 }
@@ -391,13 +396,17 @@ Ttoken* get_token() {
 				token->attribute.string = str_pomocny;
 
 				// TODO zmazat
-				if ( token->type == TKN_int )
+		/*		if ( token->type == TKN_int )
 					printf("%d %d\n", token->type, token->attribute.integer);
 				else if ( token->type == TKN_dbl )
 					printf("%d %g\n", token->type, token->attribute.dble);
 				else
-					printf("%d %s\n", token->type, token->attribute.string);
-
+				{
+					if ( token->attribute.string != NULL )
+						printf("%d %s\n", token->type, token->attribute.string);
+					else
+						printf("token = %d\n", token->type);
+				}	*/
 				return token;	
 				
 				//printf("ID je : %s \n", token->attribute.string);
@@ -436,7 +445,28 @@ Ttoken* get_token() {
 					case 'e' :
 						//printf("cele cislo s exponentom \n");
 
-						c = fgetc(SUBOR);
+							c = fgetc(SUBOR);			// nacitaj dalsi znak
+
+							if((c == '+') || (c == '-') || (isdigit(c))) { //ak je tam dobrovolne +/- zapis, ak nie zapis cislo
+								str_pomocny[index] = c;
+								index++;
+
+							}
+							else {
+								fprintf(stderr, "Lex Err: po exponente musi ist cislo, alebo +/-");
+								err_code = LEXICAL_ERR;
+								return NULL;
+							}
+
+							c = fgetc(SUBOR);
+
+							while(isdigit(c)) {
+								str_pomocny[index] = c;
+								index++;
+								c = fgetc(SUBOR);
+							}
+					
+						/*c = fgetc(SUBOR);
 						if(isdigit(c)) {
 							str_pomocny[index] = c;
 							index++;
@@ -452,7 +482,7 @@ Ttoken* get_token() {
 							str_pomocny[index] = c;
 							index++;
 							c = fgetc(SUBOR);
-						}
+						}*/
 						ungetc(c, SUBOR);
 						break;
 
@@ -651,13 +681,18 @@ Ttoken* get_token() {
 		token->type = TKN_EOF;
 	}
 
-	if ( token->type == TKN_int )
+	/*if ( token->type == TKN_int )
 		printf("%d %d\n", token->type, token->attribute.integer);
 	else if ( token->type == TKN_dbl )
 		printf("%d %g\n", token->type, token->attribute.dble);
 	else
-		printf("%d %s\n", token->type, token->attribute.string);
-
+	{
+		if ( token->attribute.string != NULL )
+			printf("%d %s\n", token->type, token->attribute.string);
+		else
+			printf("token = %d\n", token->type);
+	}
+*/
 	return token;
 
 }
