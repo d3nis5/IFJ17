@@ -16,9 +16,16 @@
 #include <string.h>
 #include "token.h"
 
+#ifndef SCANNER_H
+#define SCANNER_H
+
 
 #define SUBOR stdin
 #define ALOC 128
+
+
+extern Ttoken_list token_list;
+
 
 /* preskoci riadkovy komentar po koniec riadku */
 void ignor_ria_kom(int *c);
@@ -41,3 +48,4 @@ int is_kwd(char* ident);
 /* vrati ukazatel na strukturu token volajucemu */
 Ttoken* get_token();
 
+#endif /* SCANNER_H */

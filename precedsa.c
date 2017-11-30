@@ -3,25 +3,26 @@
 #define MAX_RET 150
 
 /*Tabulka precedencnych pravidiel*/
-char PrecTab[18][18]={
-	">>>>>>>>>>><><<<<>", // * 0
-	"<>><<>>>>>><><<<<>", // + 1
-	"<>><<>>>>>><><<<<>", // - 2
-	">>>>>>>>>>><><<<<>", // / 3
-	"<>><>>>>>>><><<<<>", // \ */ 4
-	"<<<<<>>>>>><><<<<>", // < 5
-	"<<<<<>>>>>><><<<<>", // > 6
-	"<<<<<>>>>>><><<<<>", // = 7
-	"<<<<<>>>>>><><<<<>", // <= 8
-	"<<<<<>>>>>><><<<<>", // >= 9
-	"<<<<<>>>>>><><<<<>", // <> 10
-	"<<<<<<<<<<<<=<<<<E", // ( 11
-	">>>>>>>>>>>E>EEEE>", // ) 12
-	">>>>>>>>>>>E>EEEE>", // id 13
-	">>>>>>>>>>>E>EEEE>", // int 14
-	">>>>>>>>>>>E>EEEE>", // double 15
-	">>>>>>>>>>>E>EEEE>", // str 16
-	"<<<<<<<<<<<<E<<<<$"  //$ EOL ; 17
+char PrecTab[19][19]={
+	">>>>>>>>>>><><<<<E>", // * 0
+	"<>><<>>>>>><><<<<E>", // + 1
+	"<>><<>>>>>><><<<<E>", // - 2
+	">>>>>>>>>>><><<<<E>", // / 3
+	"<>><>>>>>>><><<<<E>", // \ */ 4
+	"<<<<<>>>>>><><<<<<>", // < 5
+	"<<<<<>>>>>><><<<<<>", // > 6
+	"<<<<<>>>>>><><<<<<>", // = 7
+	"<<<<<>>>>>><><<<<<>", // <= 8
+	"<<<<<>>>>>><><<<<<>", // >= 9
+	"<<<<<>>>>>><><<<<<>", // <> 10
+	"<<<<<<<<<<<<=<<<<<E", // ( 11
+	">>>>>>>>>>>E>EEEEE>", // ) 12
+	">>>>>>>>>>>E>EEEEE>", // id 13
+	">>>>>>>>>>>E>EEEEE>", // int 14
+	">>>>>>>>>>>E>EEEEE>", // double 15
+	">>>>>>>>>>>E>EEEEE>", // str 16
+	"EEEEE>>>>>>E>EEEEE>", //bool 17
+	"<<<<<<<<<<<<E<<<<E$"  //$ EOL ; 18
 	};
 
 int vyhodnot_vyraz(Ttoken **token, SYMTB_itemptr_l locTab , bool assign)
@@ -114,7 +115,7 @@ int vyhodnot_vyraz(Ttoken **token, SYMTB_itemptr_l locTab , bool assign)
                             tdStackActTop(&S);	//nastavi aktivitu na vrchol zasobnika
                             tdStackTop(&S, &t2);
                             int tmp5=getIndex(TokenType(t2));
-                            if ( tmp5 >= 19 && tmp5 <=21 )	//na vrchole je neterminal
+                            if ( (tmp5 >= 20 && tmp5 <= 22) || (tmp5 == 17) )	//na vrchole je neterminal
                             {
                                 chyba=tdStackPreInsert(&S, &th);	//push '<' pred vrchol zasobnika*/
                                 if (chyba)
@@ -173,7 +174,7 @@ int vyhodnot_vyraz(Ttoken **token, SYMTB_itemptr_l locTab , bool assign)
 					    	tdStackTop(&S, &t2);  //precita vrchol zasobnika
 							znak=getIndex(TokenType(t2));
 							poc=1;	//precitali sme 1 ukazatel na token
-							while (znak != 18 && znak != 17)	//citame vsetko od vrcholu po prvy vyskyt '<' alebo EOL($)
+							while (znak != 19 && znak != 18)	//citame vsetko od vrcholu po prvy vyskyt '<' alebo EOL($)
     						{
         						tdStackPred(&S);
         						tdStackActCopy(&S, &t2);
@@ -238,7 +239,7 @@ int vyhodnot_vyraz(Ttoken **token, SYMTB_itemptr_l locTab , bool assign)
                         return SYNTAX_ERR;
 			default: break;
 		}
-	}while( stlpec != 17 || riadok != 17 );
+	}while( stlpec != 18 || riadok != 18 );
 
 	*token=t;	//vratim ukazatel na dalsi token
 
@@ -248,7 +249,6 @@ int vyhodnot_vyraz(Ttoken **token, SYMTB_itemptr_l locTab , bool assign)
 	snprintf(ret,MAX_RET,"POPS LF@$result");    //presunie vyslednu hodnotu do result premennej
     if(!add_instruction(&list, ret))
         return COMPILER_ERR;
-
 
 	return 0;	//vsetko v poriadku
 }
@@ -260,7 +260,6 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
 	int chyba;
 	char ret[MAX_RET];	//pomocny retazec na generovanie instrukcii
 	char *str;		//pomocny retazec na generovanie instrukcii
-	//char ins_typ;	//urcuje typ vysledneho vyrazu v instrukciach	('i','s','d','b')
 	Ttoken *new, *t1, *t2, *t3, *t4;
 	tdStackActTop(S);
 	if (rule <= 12 && rule >=0)
@@ -704,7 +703,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         else
             return TYPE_ERR;
     }
-    else if (rule == 6)	// '<'	D->D<D, I->I<I, D->D<I, D->I<D, S->S<S
+    else if (rule == 6)	// '<'	D->D<D, I->I<I, D->D<I, D->I<D, S->S<S, B->B<B
     {
 		if (assign)
 		{
@@ -716,7 +715,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         	if ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
              	 ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) )
         	{
-            	result_type='D';
+            	result_type='B';
 				ins_typ='b';
 				snprintf(ret,MAX_RET,"LTS");    // mensie nez
             	if(!add_instruction(&list, ret))
@@ -726,7 +725,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         	else if ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
                   	  ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) )
         	{
-            	result_type='I';
+            	result_type='B';
 				ins_typ='b';
 				snprintf(ret,MAX_RET,"LTS");    //mensie nez
             	if(!add_instruction(&list, ret))
@@ -738,7 +737,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
              		 ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
              		   ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) ) )
         	{
-            	result_type='D';
+            	result_type='B';
 				ins_typ='b';
 				if( (TokenType(t2) == 'D') && (TokenType(t4) == 'I') )
             	{
@@ -768,17 +767,26 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         	else if ( ((TokenType(t2) == TKN_str) || (TokenType(t2) == 'S')) &&
                   	  ((TokenType(t4) == TKN_str) || (TokenType(t4) == 'S')) )
         	{
-            	result_type='S';
+            	result_type='B';
 				ins_typ='b';
 				snprintf(ret,MAX_RET,"LTS");    //mensie nez
             	if(!add_instruction(&list, ret))
                 	return COMPILER_ERR;
         	}
+			//oba operadny su typu bool
+			else if( (TokenType(t2) == 'B') && (TokenType(t4) == 'B') )
+			{
+				result_type='B';
+				ins_typ='b';
+				snprintf(ret,MAX_RET,"LTS");    //mensie nez
+                if(!add_instruction(&list, ret))
+                	return COMPILER_ERR;
+			}
         	else
             	return TYPE_ERR;
 		}
     }
-    else if (rule == 7)	// '>'	D->D>D, I->I>I, D->D>I, D->I>D, S->S>S
+    else if (rule == 7)	// '>'	D->D>D, I->I>I, D->D>I, D->I>D, S->S>S, B->B>B
     {
 		if (assign)
 		{
@@ -790,7 +798,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         	if ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
              	 ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) )
         	{
-            	result_type='D';
+            	result_type='B';
 				ins_typ='b';
 				snprintf(ret,MAX_RET,"GTS");    // vacsie nez
                 if(!add_instruction(&list, ret))
@@ -800,7 +808,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         	else if ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
                   	  ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) )
         	{
-            	result_type='I';
+            	result_type='B';
 				ins_typ='b';
 				snprintf(ret,MAX_RET,"GTS");   // vacsie nez
                 if(!add_instruction(&list, ret))
@@ -812,7 +820,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
              		 ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
              		   ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) ) )
         	{
-            	result_type='D';
+            	result_type='B';
 				ins_typ='b';
 				if( (TokenType(t2) == 'D') && (TokenType(t4) == 'I') )
                 {
@@ -842,17 +850,26 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         	else if ( ((TokenType(t2) == TKN_str) || (TokenType(t2) == 'S')) &&
                   	  ((TokenType(t4) == TKN_str) || (TokenType(t4) == 'S')) )
         	{
-            	result_type='S';
+            	result_type='B';
 				ins_typ='b';
 				snprintf(ret,MAX_RET,"GTS");    // vacsie nez
                 if(!add_instruction(&list, ret))
                     return COMPILER_ERR;
         	}
+			//oba operandy su typu bool
+			else if( (TokenType(t2) == 'B') && (TokenType(t4) == 'B') )
+            {
+                result_type='B';
+                ins_typ='b';
+                snprintf(ret,MAX_RET,"GTS");    //vacsie nez
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+            }
         	else
             	return TYPE_ERR;
 		}
     }
-    else if (rule == 8)	// '='	D->D=D, I->I=I, D->D=I, D->I=D, S->S=S
+    else if (rule == 8)	// '='	D->D=D, I->I=I, D->D=I, D->I=D, S->S=S,	B->B=B
     {
 		if (assign)
 		{
@@ -864,7 +881,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         	if ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
              	 ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) )
         	{
-            	result_type='D';
+            	result_type='B';
 				ins_typ='b';
 				snprintf(ret,MAX_RET,"EQS");    // rovne
                 if(!add_instruction(&list, ret))
@@ -874,7 +891,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         	else if ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
                   	  ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) )
         	{
-            	result_type='I';
+            	result_type='B';
 				ins_typ='b';
 				snprintf(ret,MAX_RET,"EQS");    // rovne
                 if(!add_instruction(&list, ret))
@@ -886,7 +903,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
              		 ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
              		   ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) ) )
         	{
-            	result_type='D';
+            	result_type='B';
 				ins_typ='b';
 				if( (TokenType(t2) == 'D') && (TokenType(t4) == 'I') )
                 {
@@ -917,17 +934,26 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         	else if ( ((TokenType(t2) == TKN_str) || (TokenType(t2) == 'S')) &&
                   	  ((TokenType(t4) == TKN_str) || (TokenType(t4) == 'S')) )
         	{
-            	result_type='S';
+            	result_type='B';
 				ins_typ='b';
 				snprintf(ret,MAX_RET,"EQS");    // rovne
                 if(!add_instruction(&list, ret))
                     return COMPILER_ERR;
         	}
+			//oba operandy su typu bool
+			else if( (TokenType(t2) == 'B') && (TokenType(t4) == 'B') )
+            {
+                result_type='B';
+                ins_typ='b';
+                snprintf(ret,MAX_RET,"EQS");    //rovne
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+            }
         	else
             	return TYPE_ERR;
 		}
     }
-    else if (rule == 9)	// '<='	D->D<=D, I->I<=I, D->D<=I, D->I<=D, S->S<=S
+    else if (rule == 9)	// '<='	D->D<=D, I->I<=I, D->D<=I, D->I<=D, S->S<=S, B->B<=B
     {
 		if (assign)
 		{
@@ -939,7 +965,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         	if ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
              	 ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) )
         	{
-            	result_type='D';
+            	result_type='B';
 				ins_typ='b';
 				snprintf(ret,MAX_RET,"POPS GF@$tmp2");    // uloz operand 2 do tmp2
                 if(!add_instruction(&list, ret))
@@ -981,7 +1007,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         	else if ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
                   	  ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) )
         	{
-            	result_type='I';
+            	result_type='B';
 				ins_typ='b';
 				snprintf(ret,MAX_RET,"POPS GF@$tmp2");    // uloz operand 2 do tmp2
                 if(!add_instruction(&list, ret))
@@ -1025,7 +1051,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
              		 ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
              		   ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) ) )
         	{
-            	result_type='D';
+            	result_type='B';
 				ins_typ='b';
 				if( (TokenType(t2) == 'D') && (TokenType(t4) == 'I') )
                 {
@@ -1087,7 +1113,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         	else if ( ((TokenType(t2) == TKN_str) || (TokenType(t2) == 'S')) &&
                   	  ((TokenType(t4) == TKN_str) || (TokenType(t4) == 'S')) )
         	{
-            	result_type='S';
+            	result_type='B';
 				ins_typ='b';
 				snprintf(ret,MAX_RET,"POPS GF@$tmp2");    // uloz operand 2 do tmp2
                 if(!add_instruction(&list, ret))
@@ -1125,11 +1151,52 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
                 if(!add_instruction(&list, ret))
                     return COMPILER_ERR;
         	}
+			//oba operandy su typu bool
+			else if( (TokenType(t2) == 'B') && (TokenType(t4) == 'B') )
+            {
+                result_type='B';
+                ins_typ='b';
+                snprintf(ret,MAX_RET,"POPS GF@$tmp2");    // uloz operand 2 do tmp2
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+
+                snprintf(ret,MAX_RET,"POPS GF@$tmp");    // uloz operand 1 do tmp
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+
+                snprintf(ret,MAX_RET,"PUSHS GF@$tmp");    // vrati naspat op1
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+
+                snprintf(ret,MAX_RET,"PUSHS GF@$tmp2");    // vrati naspat op2
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+
+                snprintf(ret,MAX_RET,"LTS");    //mensi nez
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+
+                snprintf(ret,MAX_RET,"PUSHS GF@$tmp");    // vlozi op1 na zasobnik
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+
+                snprintf(ret,MAX_RET,"PUSHS GF@$tmp2");    // vlozi op2 na zasobnik
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+
+                snprintf(ret,MAX_RET,"EQS");    // rovne
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+
+                snprintf(ret,MAX_RET,"ORS");    // or
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+            }
         	else
             	return TYPE_ERR;
 		}
     }
-    else if (rule == 10)	// '>='		D->D>=D, I->I>=I, D->D>=I, D->I>=D, S->S>=S
+    else if (rule == 10)	// '>='		D->D>=D, I->I>=I, D->D>=I, D->I>=D, S->S>=S, B->B>=B
     {
 		if (assign)
 		{
@@ -1141,7 +1208,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         	if ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
              	 ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) )
         	{
-            	result_type='D';
+            	result_type='B';
 				ins_typ='b';
 				snprintf(ret,MAX_RET,"POPS GF@$tmp2");    // uloz operand 2 do tmp2
                 if(!add_instruction(&list, ret))
@@ -1184,7 +1251,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         	else if ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
                   	  ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) )
         	{
-            	result_type='I';
+            	result_type='B';
 				ins_typ='b';
 				snprintf(ret,MAX_RET,"POPS GF@$tmp2");    // uloz operand 2 do tmp2
                 if(!add_instruction(&list, ret))
@@ -1228,7 +1295,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
              		 ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
              		   ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) ) )
         	{
-            	result_type='D';
+            	result_type='B';
 				ins_typ='b';
 				if( (TokenType(t2) == 'D') && (TokenType(t4) == 'I') )
                 {
@@ -1290,7 +1357,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         	else if ( ((TokenType(t2) == TKN_str) || (TokenType(t2) == 'S')) &&
                   	  ((TokenType(t4) == TKN_str) || (TokenType(t4) == 'S')) )
         	{
-            	result_type='S';
+            	result_type='B';
 				ins_typ='b';
 				snprintf(ret,MAX_RET,"POPS GF@$tmp2");    // uloz operand 2 do tmp2
                 if(!add_instruction(&list, ret))
@@ -1328,11 +1395,52 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
                 if(!add_instruction(&list, ret))
                     return COMPILER_ERR;
         	}
+			//oba operandy su typu bool
+            else if( (TokenType(t2) == 'B') && (TokenType(t4) == 'B') )
+            {
+                result_type='B';
+                ins_typ='b';
+				snprintf(ret,MAX_RET,"POPS GF@$tmp2");    // uloz operand 2 do tmp2
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+
+                snprintf(ret,MAX_RET,"POPS GF@$tmp");    // uloz operand 1 do tmp
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+
+                snprintf(ret,MAX_RET,"PUSHS GF@$tmp");    // vrati naspat op1
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+
+                snprintf(ret,MAX_RET,"PUSHS GF@$tmp2");    // vrati naspat op2
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+
+                snprintf(ret,MAX_RET,"GTS");    //vacsi nez
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+
+                snprintf(ret,MAX_RET,"PUSHS GF@$tmp");    // vlozi op1 na zasobnik
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+
+                snprintf(ret,MAX_RET,"PUSHS GF@$tmp2");   // vlozi op2 na zasobnik
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+
+                snprintf(ret,MAX_RET,"EQS");    // rovne
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+
+                snprintf(ret,MAX_RET,"ORS");    // or
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+			}
         	else
             	return TYPE_ERR;
 		}
     }
-    else if (rule == 11)	// '<>	D->D<>D, I->I<>I, D->D<>I, D->I<>D, S->S<>S'
+    else if (rule == 11)	// '<>'	D->D<>D, I->I<>I, D->D<>I, D->I<>D, S->S<>S, B->B<>B
     {
 		if (assign)
 		{
@@ -1344,7 +1452,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         	if ( ((TokenType(t2) == TKN_dbl) || (TokenType(t2) == 'D')) &&
              	 ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) )
         	{
-            	result_type='D';
+            	result_type='B';
 				ins_typ='b';
 				snprintf(ret,MAX_RET,"EQS");    // rovne
                 if(!add_instruction(&list, ret))
@@ -1358,7 +1466,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         	else if ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
                   	  ((TokenType(t4) == TKN_int) || (TokenType(t4) == 'I')) )
         	{
-            	result_type='I';
+            	result_type='B';
 				ins_typ='b';
 				snprintf(ret,MAX_RET,"EQS");    // rovne
                 if(!add_instruction(&list, ret))
@@ -1374,7 +1482,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
              		 ( ((TokenType(t2) == TKN_int) || (TokenType(t2) == 'I')) &&
              		   ((TokenType(t4) == TKN_dbl) || (TokenType(t4) == 'D')) ) )
         	{
-            	result_type='D';
+            	result_type='B';
 				ins_typ='b';
 				if( (TokenType(t2) == 'D') && (TokenType(t4) == 'I') )
                 {
@@ -1408,7 +1516,7 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
         	else if ( ((TokenType(t2) == TKN_str) || (TokenType(t2) == 'S')) &&
                   	  ((TokenType(t4) == TKN_str) || (TokenType(t4) == 'S')) )
         	{
-            	result_type='S';
+            	result_type='B';
 				ins_typ='b';
 				snprintf(ret,MAX_RET,"EQS");    //rovne
                 if(!add_instruction(&list, ret))
@@ -1418,11 +1526,24 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
                 if(!add_instruction(&list, ret))
                     return COMPILER_ERR;
         	}
+			//oba operandy su typu bool
+            else if( (TokenType(t2) == 'B') && (TokenType(t4) == 'B') )
+            {
+                result_type='B';
+                ins_typ='b';
+				snprintf(ret,MAX_RET,"EQS");    // rovne
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+
+                snprintf(ret,MAX_RET,"NOTS");    // not
+                if(!add_instruction(&list, ret))
+                    return COMPILER_ERR;
+			}
         	else
             	return TYPE_ERR;
 		}
     }
-    else if (rule == 12)	// '(id)', '(int)', '(str)', '(D)', '(I)', '(S)'
+    else if (rule == 12)	// '(id)', '(int)', '(str)', '(D)', '(I)', '(S)', '(B)'
     {
    		if ((TokenType(t3) == TKN_int) || (TokenType(t3) == 'I'))
 		{
@@ -1439,6 +1560,11 @@ int DoRule(tdStack *S, SYMTB_itemptr_l locTab, int rule, bool assign)
 			result_type='S';
             ins_typ='s';
 		}
+		else if (TokenType(t3) == 'B')
+        {
+            result_type='B';
+            ins_typ='b';
+        }
 		else
 			return TYPE_ERR;
     }
@@ -1562,7 +1688,8 @@ int WhichRule(Ttoken **pole,SYMTB_itemptr_l locTab, int max)
 	{
 		if ((pole[1]->type == TKN_leftpar && pole[3]->type == TKN_rightpar) || (pole[1]->type == 'I' && pole[3]->type == 'I') ||	//(I/D/S) IoI
 			(pole[1]->type == 'D' && pole[3]->type == 'D') || (pole[1]->type == 'S' && pole[3]->type == 'S') ||	//DoD SoS
-			(pole[1]->type == 'I' && pole[3]->type == 'D') || (pole[1]->type == 'D' && pole[3]->type == 'I'))	//IoD DoI
+			(pole[1]->type == 'I' && pole[3]->type == 'D') || (pole[1]->type == 'D' && pole[3]->type == 'I') ||	//IoD DoI
+			(pole[1]->type == 'B' && pole[3]->type == 'B') )	//BoB
 		{
 			switch (getIndex(TokenType(pole[2])))
 			{
@@ -1577,9 +1704,10 @@ int WhichRule(Ttoken **pole,SYMTB_itemptr_l locTab, int max)
 				case 8: return 9;	break;  // '<='
 				case 9: return 10;	break;  // '>='
 				case 10: return 11;	break;  // '<>'
-				case 19: return 12;	break;  // 'I'
-				case 20: return 12;	break;  // 'D'
-				case 21: return 12; break;  // 'S'
+				case 20: return 12;	break;  // ('I')
+				case 21: return 12;	break;  // ('D')
+				case 22: return 12; break;  // ('S')
+				case 17: return 12; break;	// ('B')
 				default: return -2;	break;//Ziadne pravidlo SYNTAX_ERR
 			}
 		}
@@ -1644,16 +1772,18 @@ int getIndex(TKN_type type)
         return 15;
 	if (type == TKN_str)
         return 16;
+	if (type == 'B')	// neterminal bool
+		return 17;
 	if (type == TKN_EOL || type == TKN_smcolon || type==KWD_then)	// $
-        return 17;
+        return 18;
 	if (type == '<')	//zaciatok handle
-		return 18;
-	if (type == 'I')	//neterminal int
 		return 19;
-	if (type == 'D')	//neterminal double
+	if (type == 'I')	//neterminal int
 		return 20;
-	if (type == 'S')	//neterminal string
+	if (type == 'D')	//neterminal double
 		return 21;
+	if (type == 'S')	//neterminal string
+		return 22;
 	return -1;	//nasiel neocakavany token
 }
 
@@ -1672,12 +1802,12 @@ int getTopTerm(tdStack *S)
 	do
 	{
 		riadok=getIndex( TokenType(tmp) );	//zisti co za typ tokenu je na vrchole a priradi mu index
-		if (riadok >= 0 && riadok <=17)		//je terminal
+		if (riadok >= 0 && riadok <=18 && riadok != 17)		//je terminal
 			break;
 
 		tdStackPred(S);
 		tdStackActCopy(S, &tmp);
-	} while (riadok != 17);	//na spodku zasobnika je EOL($)
+	} while (riadok != 18);	//na spodku zasobnika je EOL($)
 
 	return riadok;
 }
@@ -1698,7 +1828,7 @@ void tdStackDispose(tdStack *S)
 	while(S->Act != NULL){
 		tmp=S->Act;
 		S->Act=S->Act->rptr;	//posun na dalsi prvok
-		if (tmp->TokenPtr->type == 'I' || tmp->TokenPtr->type == 'D' || tmp->TokenPtr->type == 'S')
+		if (tmp->TokenPtr->type == 'I' || tmp->TokenPtr->type == 'D' || tmp->TokenPtr->type == 'S' || tmp->TokenPtr->type == 'B')
             free(tmp->TokenPtr);
 		free(tmp);
 	}
@@ -1761,7 +1891,7 @@ void tdStackDeleteTop (tdStack *S)
 			S->Top=S->Top->lptr;
 			S->Top->rptr=NULL;
 		}
-		if (tmp->TokenPtr->type == 'I' || tmp->TokenPtr->type == 'D' || tmp->TokenPtr->type == 'S')
+		if (tmp->TokenPtr->type == 'I' || tmp->TokenPtr->type == 'D' || tmp->TokenPtr->type == 'S' || tmp->TokenPtr->type == 'B')
         {
           free(tmp->TokenPtr);
         }
@@ -1781,7 +1911,7 @@ void tdStackDeletePreAct (tdStack *S)
 				S->Bottom=S->Act;
 			else
 				tmp->lptr->rptr=S->Act;
-            if (tmp->TokenPtr->type == 'I' || tmp->TokenPtr->type == 'D' || tmp->TokenPtr->type == 'S')
+            if (tmp->TokenPtr->type == 'I' || tmp->TokenPtr->type == 'D' || tmp->TokenPtr->type == 'S' || tmp->TokenPtr->type == 'B')
                 free(tmp->TokenPtr);
 			free(tmp);
 		}

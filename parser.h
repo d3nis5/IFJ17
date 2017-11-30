@@ -19,15 +19,15 @@
 #include "error.h"
 #include "instructions.h"
 #include "gener_buildin_fce.h"
-
 #include "scanner.h"
-
-
 
 
 #ifndef PARSER_H
 #define PARSER_H
+
 int err_code;
+Ttoken_list token_list;
+
 
 /* Pravidlo pre <Program> */
 bool r_program();

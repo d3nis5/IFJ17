@@ -102,7 +102,7 @@ char* format_string(char* string, int *mem_alloc) {
 	int num_to_copy = 0;				//pocet bytov na skopirovanie pri posune
 	int prva_cif;
 	int druha_cif;
-	int pamat = *mem_alloc;
+	unsigned pamat = *mem_alloc;
 
 	int i = 0;
 
@@ -110,10 +110,10 @@ char* format_string(char* string, int *mem_alloc) {
 	while(string[i]) {
 
 
-		if((pamat - 1) < (i + 5)) {
+		if((pamat - 1) < (strlen(string) + 5)) {
 
 			pamat = pamat*2;							//zdvojnasob mem_allocated
-			//string = realloc(string, pamat);					//reallocuj str_pomocny TODO
+			string = realloc(string, pamat);					//reallocuj str_pomocny TODO
 			//printf("(format)Bola zvacsena alloc. pamat na %d\n", pamat);
 
 		}
@@ -282,9 +282,9 @@ Ttoken* get_token() {
 
 	int index = 0; //index k roznym ucelom, treba vzdy nulovat
 
-	int mem_allocated;
+	char *str_pomocny = NULL;
 
-	char *str_pomocny = malloc(ALOC);			//	TO CHECK - zatial 128. //odstranil som (char*)
+	int mem_allocated;
 
 	int c = fgetc(SUBOR); //nacitam znaku
 
@@ -302,79 +302,90 @@ Ttoken* get_token() {
 		if(c == '\'') { //ak je apostrof, ide o riadkovy koment
 			ignor_ria_kom(&c);			//pozn: je nacitany \n. Predat EOL token ci nie ??? ***
 		}
-
-
-		if(c == '\n') {			//ak je c znak konca riadku
+		else if(c == '\n') {			//ak je c znak konca riadku
 			token->type = TKN_EOL;
 		}
 
-		if(c == '+') {
+		else if(c == '+') {
 			token->type = TKN_plus;
 		}
 
-		if(c == '-') {
+		else if(c == '-') {
 			token->type = TKN_minus;
 		}
 
-		if(c == '*') {
+		else if(c == '*') {
 			token->type = TKN_star;
 		}
 
-		if(c == '/') {
+		else if(c == '/') {
 			stav = TKN_slash;
 		}
 
-		if(c == '\\') {			//spatne TKN_slash ...
+		else if(c == '\\') {			//spatne TKN_slash ...
 			token->type = TKN_backslash;
 		}
 
-		if(c == '>') {
+		else if(c == '>') {
 			stav = TKN_gt;
 		}
 
-		if(c == '<') {
+		else if(c == '<') {
 			stav = TKN_less;
 		}
 
-		if(c == '=') {
+		else if(c == '=') {
 			token->type = TKN_eq;
 		}
 
-		if(c == ';') {
+		else if(c == ';') {
 			token->type = TKN_smcolon;
 		}
 
-		if(c == ',') {
+		else if(c == ',') {
 			token->type = TKN_colon;
 		}
 
-		if(c == '(') {
+		else if(c == '(') {
 			token->type = TKN_leftpar;
 		}
 
-		if(c == ')') {
+		else if(c == ')') {
 			token->type = TKN_rightpar;
 		}
 
-		if(c == '!') {			//String zacina " !" "
+		else if(c == '!') {			//String zacina " !" "
 			stav = TKN_str;
 		}
 
-		if(isalpha(c) || (c == '_')) {	// _ alebo a-z znaci ID
+		else if(isalpha(c) || (c == '_')) {	// _ alebo a-z znaci ID
 			stav = TKN_id;
 		}
 
-		if(isdigit(c)) {				//ci je double sa overi az v switchi
+		else if(isdigit(c)) {				//ci je double sa overi az v switchi
 			stav = TKN_int;
 		}
+		else if ( c == EOF ) 
+		{
+			token->type = TKN_EOF;
+			add_token(&token_list, token);
+			return token;
+		}
+		else
+		{
+			err_code = LEXICAL_ERR;
+			return NULL;
+		}
 
+		if ( (stav == TKN_id) || (stav == TKN_int) || (stav == TKN_dbl) || (stav == TKN_str) )
+			str_pomocny = malloc(ALOC * sizeof(char));
 
 		switch(stav) {
 
 
 			case TKN_id :
 				index = 0;
-				mem_allocated = ALOC;				//alokovana pamat pre pomocny string
+				mem_allocated = ALOC * sizeof(char);			//alokovana pamat pre pomocny string
 				while(isdigit(c) || isalpha(c) || (c == '_')) {
 
 					if((mem_allocated - 1) == index) {
@@ -393,10 +404,13 @@ Ttoken* get_token() {
 				str_pomocny = to_lower_case(str_pomocny);
 				token->type = is_kwd(str_pomocny); 		 //priradi "stav", teda typ tokenu do tokenu
 
-				token->attribute.string = str_pomocny;
+				if ( token->type == 0 )
+					token->attribute.string = str_pomocny;
+				else
+					free(str_pomocny);
 
 				// TODO zmazat
-		/*		if ( token->type == TKN_int )
+				/*if ( token->type == TKN_int )
 					printf("%d %d\n", token->type, token->attribute.integer);
 				else if ( token->type == TKN_dbl )
 					printf("%d %g\n", token->type, token->attribute.dble);
@@ -407,6 +421,8 @@ Ttoken* get_token() {
 					else
 						printf("token = %d\n", token->type);
 				}	*/
+
+				add_token(&token_list, token);
 				return token;	
 				
 				//printf("ID je : %s \n", token->attribute.string);
@@ -426,6 +442,7 @@ Ttoken* get_token() {
 					str_pomocny[index] = '\0'; 						//koniec retazca
 					token->type = TKN_int;							//int ostal integer
 					token->attribute.integer = atoi(str_pomocny);
+					free(str_pomocny);
 					//printf("Cele cislo\n");
 					break;											// a skonci
 				}
@@ -455,6 +472,7 @@ Ttoken* get_token() {
 							else {
 								fprintf(stderr, "Lex Err: po exponente musi ist cislo, alebo +/-");
 								err_code = LEXICAL_ERR;
+								free(str_pomocny);
 								return NULL;
 							}
 
@@ -466,23 +484,6 @@ Ttoken* get_token() {
 								c = fgetc(SUBOR);
 							}
 					
-						/*c = fgetc(SUBOR);
-						if(isdigit(c)) {
-							str_pomocny[index] = c;
-							index++;
-						}
-						else {
-							fprintf(stderr, "Lex Err: expont musi obsahovat nepr. postupnost cisl.\n");
-							err_code = LEXICAL_ERR;
-							return NULL;
-						}
-
-						c = fgetc(SUBOR);
-						while(isdigit(c)) {
-							str_pomocny[index] = c;
-							index++;
-							c = fgetc(SUBOR);
-						}*/
 						ungetc(c, SUBOR);
 						break;
 
@@ -540,7 +541,7 @@ Ttoken* get_token() {
 				}
 				token->type = TKN_dbl;
 				token->attribute.dble = strtod(str_pomocny, NULL);
-
+				free(str_pomocny);
 				//printf("Double ma hodnotu: %lf \n", token->attribute.dble);
 
 				break;
@@ -549,7 +550,7 @@ Ttoken* get_token() {
 
 			case TKN_str :
 				index = 0;
-				mem_allocated = ALOC;				//alokovana pamat pre pomocny string
+				mem_allocated = ALOC * sizeof(char);				//alokovana pamat pre pomocny string
 
 				if((c = fgetc(SUBOR)) == '"') {		//ak zacina str spravne ...
 
@@ -681,7 +682,7 @@ Ttoken* get_token() {
 		token->type = TKN_EOF;
 	}
 
-	/*if ( token->type == TKN_int )
+/*	if ( token->type == TKN_int )
 		printf("%d %d\n", token->type, token->attribute.integer);
 	else if ( token->type == TKN_dbl )
 		printf("%d %g\n", token->type, token->attribute.dble);
@@ -693,6 +694,7 @@ Ttoken* get_token() {
 			printf("token = %d\n", token->type);
 	}
 */
+	add_token(&token_list, token);
 	return token;
 
 }

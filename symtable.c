@@ -192,12 +192,12 @@ void LST_delete_tab(SYMTB_itemptr_l *RootPtr)
 
 		LST_delete_tab(&lptr);
 		LST_delete_tab(&rptr);
-		if((*RootPtr)->var_name != NULL)
+		/*if((*RootPtr)->var_name != NULL)
 		{
 			free((*RootPtr)->var_name);
 			(*RootPtr)->var_name = NULL;
 		}
-
+		*/
 		free(*RootPtr);
 		*RootPtr = NULL;
 	}
@@ -301,8 +301,6 @@ bool GST_add_par(SYMTB_itemptr_g function, char type)
 		function->parameters[function->par_count] = type;
 		function->par_count++;
 		function->parameters[function->par_count] = 0;
-
-
 	}
 	return true;
 }
@@ -315,17 +313,17 @@ bool GST_add_builtin(SYMTB_itemptr_g *table)
 
 	/* Length(s As String) As Integer */
 
-	char *name = (char*) malloc(7 * sizeof(char));
-	strcpy(name, "length");
-	function = GST_add_function(table, name, true, true, 'i', "s");
+	builtin1 = (char*) malloc(7 * sizeof(char));
+	strcpy(builtin1, "length");
+	function = GST_add_function(table, builtin1, true, true, 'i', "s");
 
 	function->par_names[0] = "s";
 
 	/* SubStr(s As String, i as Integer, n As Integer) As String */
 
-	name = (char*) malloc(7 * sizeof(char));
-	strcpy(name, "substr");
-	function = GST_add_function(table, name, true, true, 's', "sii");
+	builtin2 = (char*) malloc(7 * sizeof(char));
+	strcpy(builtin2, "substr");
+	function = GST_add_function(table, builtin2, true, true, 's', "sii");
 
 	function->par_names[0] = "s";
 	function->par_names[1] = "i";
@@ -333,18 +331,18 @@ bool GST_add_builtin(SYMTB_itemptr_g *table)
 
 	/* Asc(s As String, i As Integer) As Integer */
 	 
-	name = (char*) malloc(4 * sizeof(char));
-	strcpy(name, "asc");
-	function = GST_add_function(table, name, true, true, 'i', "si");
+	builtin3 = (char*) malloc(4 * sizeof(char));
+	strcpy(builtin3, "asc");
+	function = GST_add_function(table, builtin3, true, true, 'i', "si");
 
 	function->par_names[0] = "s";
 	function->par_names[1] = "i";
 
 	/* Chr(i As Integer) As String */
 
-	name = (char*) malloc(4 * sizeof(char));
-	strcpy(name, "chr");
-	function = GST_add_function(table, name, true, true, 's', "i");	
+	builtin4 = (char*) malloc(4 * sizeof(char));
+	strcpy(builtin4, "chr");
+	function = GST_add_function(table, builtin4, true, true, 's', "i");	
 
 	function->par_names[0] = "i";
 }
@@ -358,11 +356,6 @@ void GST_delete_tab(SYMTB_itemptr_g *RootPtr)
 
 		GST_delete_tab(&lptr);
 		GST_delete_tab(&rptr);
-		if((*RootPtr)->function_name != NULL)
-		{
-			free((*RootPtr)->function_name);
-			(*RootPtr)->function_name = NULL;
-		}
 		if((*RootPtr)->local_symtb != NULL)
 		{
 			LST_delete_tab(&((*RootPtr)->local_symtb));
@@ -372,6 +365,14 @@ void GST_delete_tab(SYMTB_itemptr_g *RootPtr)
 		*RootPtr = NULL;
 	}
 
+}
+
+void GST_free_builtin_names()
+{
+	free(builtin1);
+	free(builtin2);
+	free(builtin3);
+	free(builtin4);
 }
 
 #if 0

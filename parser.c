@@ -763,8 +763,6 @@ bool r_var_declaration(SYMTB_itemptr_l *local_symtb)
 				add_instruction(&list, instr);
 				break;
 			case 's' :
-				var->value.str_value = malloc(sizeof(char));
-				strcpy(var->value.str_value, "");
 				sprintf(instr, "move lf@%s string@", var_name);
 				add_instruction(&list, instr);
 				break;
@@ -1539,8 +1537,6 @@ bool r_rhs(SYMTB_itemptr_l local_symtb, char type)
 
 		SYMTB_itemptr_g function = GST_search(global_symtb, token->attribute.string);
 
-		/* TODO Skontrolovat navratovy typ */
-
 		if ( function == NULL)
 		{
 			goto variable;
@@ -1552,7 +1548,7 @@ bool r_rhs(SYMTB_itemptr_l local_symtb, char type)
 				
 			if ( (function->fc_declared == false) && (function->fc_defined == false))
 			{
-				/* Funkcia nebola deklarovana a rekurzivne vola sama seba */
+				/* Funkcia nebola deklarovana a ani definovana */
 
 				fprintf(stderr, "Funkcia vola rekurzivne samu seba a nebola deklarovana\n");
 				err_code = SEMANT_ERR;
@@ -2315,10 +2311,12 @@ bool skip_EOL()
 int main()
 {
 
+	// TODO zmazat	
 	SYMTB_itemptr_l local = NULL;
 
 	GST_add_builtin(&global_symtb);
 	init_list(&list);
+	init_tkn_list(&token_list);
 
 	token = get_token();
 
@@ -2326,7 +2324,14 @@ int main()
 	{
 	//	printf("OK\n");
 		print_list(list);
+		SYMTB_itemptr_g function = GST_search(global_symtb,"sucet");
+		//Print_tree_l(function->local_symtb);
+		delete_tkn_list(&token_list);
 		delete_list(&list);
+		GST_free_builtin_names();
+		GST_delete_tab(&global_symtb);
+		LST_delete_tab(&scope_symtb);
+		//Print_tree_l(function->local_symtb);
 		return 0;
 	}
 	else
@@ -2340,12 +2345,12 @@ int main()
 		else
 			printf("\n\nOTHER ERROR\n");*/
 		delete_list(&list);
+		delete_tkn_list(&token_list);
+		GST_free_builtin_names();
+		GST_delete_tab(&global_symtb);
+		LST_delete_tab(&scope_symtb);
 		return err_code;
 	}
 
-
-//	Print_tree_g(global_symtb);
-//	Print_tree_l(scope_symtb);
-	
 	return 0;
 }

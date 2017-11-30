@@ -21,6 +21,8 @@
 
 #define MAX_PAR 128		/* maximalny pocet parametrov funkcie */
 
+char *builtin1, *builtin2, *builtin3, *builtin4;
+
 /* Tabulka symbolov implementovana v podobe binarneho vyhladavacieho stromu 
  * SYMTB_itemptr_g		polozka globalnej tabulky symbolov, su v nej iba funkcie
  * SYMTB_itemptr_l 		polozka lokalnej tabulky symbolov, su v nej iba premenne
@@ -119,6 +121,8 @@ bool GST_add_builtin(SYMTB_itemptr_g *table);
 
 /* Zrusi celu globalnu tabulku symbolov a aj kazdu lokalnu tabulku */
 void GST_delete_tab(SYMTB_itemptr_g *);
+
+void GST_free_builtin_names();
 
 
 #endif /* SYMTABLE_H */

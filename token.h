@@ -11,6 +11,7 @@
 
 
 #include "symtable.h"
+#include <stdlib.h>
 
 #ifndef TOKEN_H
 #define TOKEN_H
@@ -108,6 +109,32 @@ typedef struct token
 	} attribute;
 
 } Ttoken;
+
+/* Polozka linearneho zoznamu tokenov */
+typedef struct tkn_list_item
+{
+	Ttoken *token;
+	struct tkn_list_item *next;
+} Ttkn_list_item;
+ 
+/* Linearny zoznam tokenov */
+typedef struct token_list
+{
+	Ttkn_list_item *first;
+	Ttkn_list_item *last;
+} Ttoken_list;
+
+
+/* Inicializuje zoznam tokenov */
+void init_tkn_list(Ttoken_list *);
+
+/* Prida token do zoznamu tokenov 
+ * Pri chybe alokacie vracia false, inak vracia true
+ */
+bool add_token(Ttoken_list *, Ttoken *token);
+
+/* Vymaze vsetky tokeny v zozname */
+void delete_tkn_list(Ttoken_list *);
 
 
 #endif /* TOKEN_H */
