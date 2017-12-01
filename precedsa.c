@@ -1,3 +1,14 @@
+/**
+ * Názov: precedsa.c
+ * Projekt IFJ
+ * Prekladač zdrojového jazyka IFJ17 do cieľového jazyka IFJcode17
+ * Autori:
+ * Maroš Holko			xholko01
+ * Denis Leitner		xleitn02
+ * Vlastimil Rádsetoulal	xradse00
+ * Michal Štábel		xstabe00
+ */
+
 #include "precedsa.h"
 #define MAXPOLE 10
 #define MAX_RET 150

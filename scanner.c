@@ -111,7 +111,6 @@ char* format_string(char* string, int *mem_alloc) {
 
 
 		if((pamat - 1) < (strlen(string) + 5)) {
-
 			pamat = pamat*2;							//zdvojnasob mem_allocated
 			string = realloc(string, pamat);					//reallocuj str_pomocny TODO
 			//printf("(format)Bola zvacsena alloc. pamat na %d\n", pamat);
@@ -377,12 +376,24 @@ Ttoken* get_token() {
 					if((mem_allocated - 1) == index) {
 						mem_allocated *= 2;									//zdvojnasob mem_allocated
 						str_pomocny = realloc(str_pomocny, mem_allocated);	//reallocuj str_pomocny
-						//printf("Bola zvacsena alloc. pamat na %d\n", mem_allocated);
+					//	printf("Bola zvacsena alloc. pamat na %d\n", mem_allocated);
 					}
 
 					str_pomocny[index] = c;
 					c = fgetc(SUBOR);
+					if ( index > 129 )
+					{
+						free(str_pomocny);
+						err_code = LEXICAL_ERR;
+						return NULL;
+					}
 					index++;
+				}
+				if (index > 128 )
+				{
+					free(str_pomocny);
+					err_code = LEXICAL_ERR;
+					return NULL;
 				}
 				ungetc(c, SUBOR);
 				str_pomocny[index] = '\0';		//ukoncenie retazca

@@ -1082,6 +1082,13 @@ bool r_item_list(SYMTB_itemptr_g function, bool definition)
 		
 		SYMTB_itemptr_l var = NULL;
 
+		if ( GST_search(global_symtb, token->attribute.string) != NULL )
+		{
+			err_code = SEMANT_ERR;
+			fprintf(stderr, "Parameter funkcie sa nazyva rovnako ako nejaka funckcia\n");
+			return false;
+		}
+
 		if (definition == true)
 		{
 			function->par_names[function->par_count] = token->attribute.string;

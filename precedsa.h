@@ -1,5 +1,5 @@
 /**
- * Názov: precedSA.h
+ * Názov: precedsa.h
  * Projekt IFJ
  * Prekladač zdrojového jazyka IFJ17 do cieľového jazyka IFJcode17
  * Autori:
