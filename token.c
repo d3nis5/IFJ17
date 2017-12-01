@@ -65,7 +65,10 @@ void delete_tkn_list(Ttoken_list *list)
 
 	while ( next != NULL )
 	{
-		if ( ((act->token->type == TKN_str) || (act->token->type == TKN_id)) && (act->token->attribute.string != NULL))
+		if ( ((act->token->type == TKN_str) || (act->token->type == TKN_id) ||
+		(act->token->type == KWD_length) || (act->token->type == KWD_substr) ||
+		(act->token->type == KWD_asc) || (act->token->type == KWD_chr)) && 
+		(act->token->attribute.string != NULL))
 		{
 			free(act->token->attribute.string);
 			act->token->attribute.string = NULL;

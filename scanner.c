@@ -390,7 +390,9 @@ Ttoken* get_token() {
 				str_pomocny = to_lower_case(str_pomocny);
 				token->type = is_kwd(str_pomocny); 		 //priradi "stav", teda typ tokenu do tokenu
 
-				if ( token->type == 0 )
+				if ( (token->type == 0) || (token->type == KWD_length) ||
+				(token->type == KWD_substr) || (token->type == KWD_asc) ||
+				(token->type == KWD_chr) )
 					token->attribute.string = str_pomocny;
 				else
 					free(str_pomocny);

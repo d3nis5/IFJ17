@@ -627,6 +627,8 @@ bool r_definition()
 		return false;
 	}
 
+	function->fc_defined = true;
+
 	if ( r_stat_list(&(function->local_symtb)) == false )
 	{
 		if ( params != NULL )
@@ -634,7 +636,6 @@ bool r_definition()
 		return false;
 	}
 
-	function->fc_defined = true;
 
 	if ( token->type != KWD_end )
 	{
@@ -1528,7 +1529,6 @@ bool r_rhs(SYMTB_itemptr_l local_symtb, char type)
 	if ( (token->type == TKN_id) || (token->type == KWD_length) || (token->type == KWD_asc) ||
 	(token->type == KWD_chr) || (token->type == KWD_substr) )
 	{
-
 		SYMTB_itemptr_g function = GST_search(global_symtb, token->attribute.string);
 
 		if ( function == NULL)
@@ -2319,7 +2319,6 @@ int main()
 	//	printf("OK\n");
 		print_list(list);
 		SYMTB_itemptr_g function = GST_search(global_symtb,"sucet");
-		//Print_tree_l(function->local_symtb);
 		delete_tkn_list(&token_list);
 		delete_list(&list);
 		GST_free_builtin_names();
