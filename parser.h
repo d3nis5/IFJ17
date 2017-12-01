@@ -25,9 +25,9 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-int err_code;
 Ttoken_list token_list;
-
+instruction_lst list;					/* paska instrukcii */
+Ttoken *token;
 
 /* Pravidlo pre <Program> */
 bool r_program();

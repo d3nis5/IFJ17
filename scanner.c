@@ -302,66 +302,52 @@ Ttoken* get_token() {
 		if(c == '\'') { //ak je apostrof, ide o riadkovy koment
 			ignor_ria_kom(&c);			//pozn: je nacitany \n. Predat EOL token ci nie ??? ***
 		}
-		else if(c == '\n') {			//ak je c znak konca riadku
+
+		if(c == '\n') {			//ak je c znak konca riadku
 			token->type = TKN_EOL;
 		}
-
 		else if(c == '+') {
 			token->type = TKN_plus;
 		}
-
 		else if(c == '-') {
 			token->type = TKN_minus;
 		}
-
 		else if(c == '*') {
 			token->type = TKN_star;
 		}
-
 		else if(c == '/') {
 			stav = TKN_slash;
 		}
-
 		else if(c == '\\') {			//spatne TKN_slash ...
 			token->type = TKN_backslash;
 		}
-
 		else if(c == '>') {
 			stav = TKN_gt;
 		}
-
 		else if(c == '<') {
 			stav = TKN_less;
 		}
-
 		else if(c == '=') {
 			token->type = TKN_eq;
 		}
-
 		else if(c == ';') {
 			token->type = TKN_smcolon;
 		}
-
 		else if(c == ',') {
 			token->type = TKN_colon;
 		}
-
 		else if(c == '(') {
 			token->type = TKN_leftpar;
 		}
-
 		else if(c == ')') {
 			token->type = TKN_rightpar;
 		}
-
 		else if(c == '!') {			//String zacina " !" "
 			stav = TKN_str;
 		}
-
 		else if(isalpha(c) || (c == '_')) {	// _ alebo a-z znaci ID
 			stav = TKN_id;
 		}
-
 		else if(isdigit(c)) {				//ci je double sa overi az v switchi
 			stav = TKN_int;
 		}
@@ -408,19 +394,6 @@ Ttoken* get_token() {
 					token->attribute.string = str_pomocny;
 				else
 					free(str_pomocny);
-
-				// TODO zmazat
-				/*if ( token->type == TKN_int )
-					printf("%d %d\n", token->type, token->attribute.integer);
-				else if ( token->type == TKN_dbl )
-					printf("%d %g\n", token->type, token->attribute.dble);
-				else
-				{
-					if ( token->attribute.string != NULL )
-						printf("%d %s\n", token->type, token->attribute.string);
-					else
-						printf("token = %d\n", token->type);
-				}	*/
 
 				add_token(&token_list, token);
 				return token;	
@@ -682,18 +655,6 @@ Ttoken* get_token() {
 		token->type = TKN_EOF;
 	}
 
-/*	if ( token->type == TKN_int )
-		printf("%d %d\n", token->type, token->attribute.integer);
-	else if ( token->type == TKN_dbl )
-		printf("%d %g\n", token->type, token->attribute.dble);
-	else
-	{
-		if ( token->attribute.string != NULL )
-			printf("%d %s\n", token->type, token->attribute.string);
-		else
-			printf("token = %d\n", token->type);
-	}
-*/
 	add_token(&token_list, token);
 	return token;
 

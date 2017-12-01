@@ -16,9 +16,7 @@
 int err_code = 0;						/* kod chyby, 0 ak bez chyby */
 SYMTB_itemptr_g global_symtb = NULL;	/* globalna tabulka symbolov */
 SYMTB_itemptr_l scope_symtb = NULL;		/* tabulka symbolov pre hlavne telo programu */
-instruction_lst list;					/* paska instrukcii */
 
-Ttoken *token;
 
 SYMTB_itemptr_g actual_function = NULL;
 char ins_typ = 0;						/* typ vysledku precedencnej */
@@ -578,6 +576,22 @@ bool r_definition()
 			break;
 	}
 
+	if ( params != NULL )
+	{
+		if ( strcmp(params, function->parameters) != 0 )
+		{
+			/* Parametre v deklaracii a definicii sa nezhoduju */
+			fprintf(stderr, "Parametre v deklaracii a definicii funkcie sa nezhoduju\n");
+			err_code = SEMANT_ERR;
+			free(params);
+			return false;
+		}
+		else
+		{
+			free(params);
+		}
+	}
+
 	if ( token->type != TKN_EOL )
 	{
 		err_code = SYNTAX_ERR;
@@ -586,15 +600,30 @@ bool r_definition()
 		return false;
 	}
 
+	if ( function->par_count == 0 )
+	{
+		;
+	}
+	else
+	{
+		for(int i = 0; i < function->par_count; i++)
+		{
+			char ins[500];
+			sprintf(ins,"defvar lf@%s", function->par_names[i]);
+			add_instruction(&list, ins);
+			char ins_move[500];
+			sprintf(ins_move,"move lf@%s lf@$par%d", function->par_names[i], i);
+			add_instruction(&list, ins_move);	
+		}
+	}	
+
 	if ( skip_EOL() == false )
 	{
-		// TODO
 		return false;
 	}
 
 	if ( token == NULL )
 	{
-		// TODO
 		return false;
 	}
 
@@ -619,7 +648,6 @@ bool r_definition()
 
 	if ( token == NULL )
 	{
-		// TODO
 		return false;
 	}
 
@@ -635,24 +663,7 @@ bool r_definition()
 
 	if ( token == NULL )
 	{
-		// TODO
 		return false;
-	}
-
-	if ( params != NULL )
-	{
-		if ( strcmp(params, function->parameters) != 0 )
-		{
-			/* Parametre v deklaracii a definicii sa nezhoduju */
-			fprintf(stderr, "Parametre v deklaracii a definicii funkcie sa nezhoduju\n");
-			err_code = SEMANT_ERR;
-			free(params);
-			return false;
-		}
-		else
-		{
-			free(params);
-		}
 	}
 
 	add_instruction(&list, "return");
@@ -1270,13 +1281,10 @@ bool r_par_list(SYMTB_itemptr_g function, SYMTB_itemptr_l local)
 
 bool r_par_par(SYMTB_itemptr_g function, SYMTB_itemptr_l local)
 {
-	char *var_name = function->par_names[par_counter];
-	strlen(var_name);
-		
-	char *instr = malloc((strlen(var_name) + 11) * sizeof(char)); /* 11 -- strlen("defvar tf@\0") */
-	sprintf(instr, "defvar tf@%s", var_name);
+	
+	char instr[500];	
+	sprintf(instr, "defvar tf@$par%d", par_counter);
 	add_instruction(&list, instr);
-	free(instr);
 
 
 	if ( par_counter >= function->par_count )
@@ -1305,10 +1313,8 @@ bool r_par_par(SYMTB_itemptr_g function, SYMTB_itemptr_l local)
 
 		if ( var->type == function->parameters[par_counter] )
 		{
-			
-			char *var_name = function->par_names[par_counter];
 			char instr[1000];
-			sprintf(instr, "move tf@%s lf@%s", var_name, var->var_name);	
+			sprintf(instr, "move tf@$par%d lf@%s", par_counter, var->var_name);	
 			add_instruction(&list, instr);
 		}
 		else if ( function->parameters[par_counter] == 'i' )
@@ -1321,9 +1327,8 @@ bool r_par_par(SYMTB_itemptr_g function, SYMTB_itemptr_l local)
 			}
 			else /* var->type == 'd' */
 			{
-				char *var_name = function->par_names[par_counter];
 				char instr[1000];
-				sprintf(instr, "float2r2eint tf@%s lf@%s", var_name, token->attribute.string);	
+				sprintf(instr, "float2r2eint tf@$par%d lf@%s", par_counter, token->attribute.string);	
 				add_instruction(&list, instr);
 			}
 		}
@@ -1338,9 +1343,8 @@ bool r_par_par(SYMTB_itemptr_g function, SYMTB_itemptr_l local)
 			}
 			else /* var->type == 'i' */
 			{
-				char *var_name = function->par_names[par_counter];
 				char instr[1000];
-				sprintf(instr, "int2float tf@%s lf@%s", var_name, token->attribute.string);	
+				sprintf(instr, "int2float tf@p$par%d lf@%s", par_counter, token->attribute.string);	
 				add_instruction(&list, instr);
 			}
 		}
@@ -1378,16 +1382,14 @@ bool r_par_par(SYMTB_itemptr_g function, SYMTB_itemptr_l local)
 		}
 		else if ( function->parameters[par_counter] == 'i' )
 		{
-			char *var_name = function->par_names[par_counter];
 			char instr[1000];
-			sprintf(instr, "move tf@%s int@%d", var_name, token->attribute.integer);	
+			sprintf(instr, "move tf@$par%d int@%d", par_counter, token->attribute.integer);	
 			add_instruction(&list, instr);
 		}
 		else if ( function->parameters[par_counter] == 'd' )
 		{
-			char *var_name = function->par_names[par_counter];
 			char instr[1000];
-			sprintf(instr, "int2float tf@%s int@%d", var_name, token->attribute.integer);	
+			sprintf(instr, "int2float tf@$par%d int@%d", par_counter, token->attribute.integer);	
 			add_instruction(&list, instr);
 		}
 
@@ -1397,7 +1399,6 @@ bool r_par_par(SYMTB_itemptr_g function, SYMTB_itemptr_l local)
 		
 		if ( token == NULL )
 		{
-			// TODO
 			return false;
 		}
 
@@ -1417,16 +1418,14 @@ bool r_par_par(SYMTB_itemptr_g function, SYMTB_itemptr_l local)
 		}
 		else if ( function->parameters[par_counter] == 'i' )
 		{
-			char *var_name = function->par_names[par_counter];
 			char instr[1000];
-			sprintf(instr, "float2r2eint tf@%s float@%g", var_name, token->attribute.dble);	
+			sprintf(instr, "float2r2eint tf@$par%d float@%g", par_counter, token->attribute.dble);	
 			add_instruction(&list, instr);
 		}
 		else if ( function->parameters[par_counter] == 'd' )
 		{
-			char *var_name = function->par_names[par_counter];
 			char instr[1000];
-			sprintf(instr, "move tf@%s float@%g", var_name, token->attribute.dble);	
+			sprintf(instr, "move tf@$par%d float@%g", par_counter, token->attribute.dble);	
 			add_instruction(&list, instr);
 		}
 
@@ -1437,7 +1436,6 @@ bool r_par_par(SYMTB_itemptr_g function, SYMTB_itemptr_l local)
 		
 		if ( token == NULL )
 		{
-			// TODO
 			return false;
 		}
 
@@ -1456,11 +1454,9 @@ bool r_par_par(SYMTB_itemptr_g function, SYMTB_itemptr_l local)
 			return false;
 		}
 
-		char *var_name = function->par_names[par_counter];
-		/* 17 - dlzka retazca "move tf@ string@" + ukoncujuca '\0'  */
-		int length = (strlen(var_name) + strlen(token->attribute.string) + 17);
+		int length = (160 +  strlen(token->attribute.string));
 		char *instr = malloc(length * sizeof(char));
-		sprintf(instr, "move tf@%s string@%s", var_name, token->attribute.string);	
+		sprintf(instr, "move tf@$par%d string@%s", par_counter, token->attribute.string);	
 		add_instruction(&list, instr);
 		free(instr);
 
@@ -1470,7 +1466,6 @@ bool r_par_par(SYMTB_itemptr_g function, SYMTB_itemptr_l local)
 
 		if ( token == NULL )
 		{
-			// TODO
 			return false;
 		}
 
@@ -1503,7 +1498,6 @@ bool r_par2_list(SYMTB_itemptr_g function, SYMTB_itemptr_l local)
 
 		if ( token == NULL )
 		{
-			// TODO
 			return false;
 		}
 

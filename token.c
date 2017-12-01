@@ -19,6 +19,18 @@ void init_tkn_list(Ttoken_list *list)
 
 bool add_token(Ttoken_list *list, Ttoken *token)
 {
+	/*if ( token->type == TKN_int )
+		printf("%d %d\n", token->type, token->attribute.integer);
+	else if ( token->type == TKN_dbl )
+		printf("%d %g\n", token->type, token->attribute.dble);
+	else
+	{
+		if ( token->attribute.string != NULL )
+			printf("%d %s\n", token->type, token->attribute.string);
+		else
+			printf("token = %d\n", token->type);
+	}*/
+
 	Ttkn_list_item *new = malloc(sizeof(Ttkn_list_item));
 	if ( new == NULL )
 	{
