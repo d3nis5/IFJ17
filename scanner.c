@@ -53,9 +53,8 @@ void ignor_ria_kom(int *c) {
 }
 
 /* preskoci blokovy komentar po ukoncovaciu sekvenciu */
-void ignor_blok_kom(int *c)
+bool ignor_blok_kom(int *c)
 {
-    int chyba=0;
     *c=fgetc(SUBOR);    //precita dalsi znak
     while(*c != EOF)
     {
@@ -64,23 +63,20 @@ void ignor_blok_kom(int *c)
             *c=fgetc(SUBOR);
             if(*c == EOF)   //error
             {
-                chyba=1;
-                break;
+                return false;
             }
         }
-        if(chyba)
-            break;
         *c=fgetc(SUBOR); //cita znak za '
         if(*c == EOF)   //error
         {
-            break;  //opusti funkciu
+			return false;
         }
         if (*c == '/')  // /
         {
-            break;  //konci komentar
+            return true;  //konci komentar
         }
     }
-    return;
+    return false;
 }
 
 /* prevedie vsetky pismena parametra na male */
@@ -359,6 +355,7 @@ Ttoken* get_token() {
 		else
 		{
 			err_code = LEXICAL_ERR;
+			free(token);
 			return NULL;
 		}
 
@@ -384,6 +381,7 @@ Ttoken* get_token() {
 					if ( index > 129 )
 					{
 						free(str_pomocny);
+						free(token);
 						err_code = LEXICAL_ERR;
 						return NULL;
 					}
@@ -392,6 +390,7 @@ Ttoken* get_token() {
 				if (index > 128 )
 				{
 					free(str_pomocny);
+					free(token);
 					err_code = LEXICAL_ERR;
 					return NULL;
 				}
@@ -456,9 +455,10 @@ Ttoken* get_token() {
 
 							}
 							else {
-								fprintf(stderr, "Lex Err: po exponente musi ist cislo, alebo +/-");
+								fprintf(stderr, "Lex Err: po exponente musi ist cislo, alebo +/-\n");
 								err_code = LEXICAL_ERR;
 								free(str_pomocny);
+								free(token);
 								return NULL;
 							}
 
@@ -479,6 +479,8 @@ Ttoken* get_token() {
 
 						if(!(isdigit(c))) {
 							fprintf(stderr, "Lexikalna chyba double ma tvar num.num\n");
+							free(token);
+							free(str_pomocny);
 							err_code = LEXICAL_ERR;
 							return NULL;
 						}
@@ -510,6 +512,8 @@ Ttoken* get_token() {
 							else {
 								fprintf(stderr, "Lex Err: po exponente musi ist cislo, alebo +/-");
 								err_code = LEXICAL_ERR;
+								free(str_pomocny);
+								free(token);
 								return NULL;
 							}
 
@@ -547,6 +551,8 @@ Ttoken* get_token() {
 						if((c == '\n') || (c == EOF)) { 	//alebo kym nenarazi na koniec riadku
 							fprintf(stderr, "Lex err: string nebol spravne ukonceny s ' \" ' \n");
 							err_code = LEXICAL_ERR;
+							free(str_pomocny);
+							free(token);
 							return NULL;
 						}
 
@@ -576,13 +582,16 @@ Ttoken* get_token() {
 					str_pomocny[index] = '\0'; 									//ukonci retazec
 					token->type = TKN_str;
 					//printf("Povodny string: \"%s\"\n", str_pomocny);
-					str_pomocny = format_string(str_pomocny, &mem_allocated);
+					char *pom = format_string(str_pomocny, &mem_allocated);
 				
-					if ( str_pomocny == NULL )
+					if ( pom == NULL )
 					{
 						err_code = LEXICAL_ERR;
+						free(str_pomocny);
+						free(token);
 						return NULL;
 					}
+					//str_pomocny = pom;
 
 					str_pomocny = reduce_string(str_pomocny);
 
@@ -592,6 +601,8 @@ Ttoken* get_token() {
 
 				else {
 					fprintf(stderr, "Chybne zadany string format je : !\" \" \n");
+					free(str_pomocny);
+					free(token);
 					err_code = LEXICAL_ERR;
 					return NULL;
 				}
@@ -601,7 +612,13 @@ Ttoken* get_token() {
 			case TKN_slash : //moze byt komentar, alebo deleno
 				//printf("slash c = %c\n", c );
 				if((c = fgetc(SUBOR)) == '\'') {
-					ignor_blok_kom(&c);
+					if( ignor_blok_kom(&c) == false )
+					{
+						err_code = LEXICAL_ERR;
+						fprintf(stderr, "Neukonceny blokovy komentar\n");
+						free(token);
+						return NULL;
+					}
 					stav=-42;
 					c=fgetc(SUBOR); 
 					continue;
