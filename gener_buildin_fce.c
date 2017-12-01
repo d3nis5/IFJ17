@@ -35,6 +35,14 @@ int generate_length(void)
 	if(!add_instruction(&list, ret))	
 		return COMPILER_ERR;
 
+	snprintf(ret,MAX,"DEFVAR LF@s"); 
+    if(!add_instruction(&list, ret))            
+        return COMPILER_ERR;
+
+	snprintf(ret,MAX,"MOVE LF@s LF@$par0");
+    if(!add_instruction(&list, ret))            
+        return COMPILER_ERR;
+
 	snprintf(ret,MAX,"DEFVAR LF@return");   //vytvori navratovu premennu
     if(!add_instruction(&list, ret))            
         return COMPILER_ERR;
@@ -57,6 +65,30 @@ int generate_substr(void)
     if(!add_instruction(&list, ret))
         return COMPILER_ERR;
 	
+	snprintf(ret,MAX,"DEFVAR LF@s"); 
+    if(!add_instruction(&list, ret))            
+        return COMPILER_ERR;
+
+	snprintf(ret,MAX,"MOVE LF@s LF@$par0");
+    if(!add_instruction(&list, ret))            
+        return COMPILER_ERR;
+
+	snprintf(ret,MAX,"DEFVAR LF@i"); 
+    if(!add_instruction(&list, ret))            
+        return COMPILER_ERR;
+
+	snprintf(ret,MAX,"MOVE LF@i LF@$par1");
+    if(!add_instruction(&list, ret))            
+        return COMPILER_ERR;
+
+	snprintf(ret,MAX,"DEFVAR LF@n"); 
+    if(!add_instruction(&list, ret))            
+        return COMPILER_ERR;
+
+	snprintf(ret,MAX,"MOVE LF@n LF@$par2");
+    if(!add_instruction(&list, ret))            
+        return COMPILER_ERR;
+
 	snprintf(ret,MAX,"DEFVAR LF@return");   //vytvori navratovu premennu
     if(!add_instruction(&list, ret))
         return COMPILER_ERR;
@@ -252,6 +284,22 @@ int generate_asc(void)
     if(!add_instruction(&list, ret))
         return COMPILER_ERR;
 		
+	snprintf(ret,MAX,"DEFVAR LF@s"); 
+    if(!add_instruction(&list, ret))            
+        return COMPILER_ERR;
+
+	snprintf(ret,MAX,"MOVE LF@s LF@$par0");
+    if(!add_instruction(&list, ret))            
+        return COMPILER_ERR;
+
+	snprintf(ret,MAX,"DEFVAR LF@i"); 
+    if(!add_instruction(&list, ret))            
+        return COMPILER_ERR;
+
+	snprintf(ret,MAX,"MOVE LF@i LF@$par1");
+    if(!add_instruction(&list, ret))            
+        return COMPILER_ERR;
+
 	snprintf(ret,MAX,"DEFVAR LF@return");   //vytvori navratovu premennu
     if(!add_instruction(&list, ret))
         return COMPILER_ERR;
@@ -319,6 +367,14 @@ int generate_chr(void)
 	char ret[MAX];
 	snprintf(ret,MAX,"LABEL chr");   //navestie
     if(!add_instruction(&list, ret))
+        return COMPILER_ERR;
+
+	snprintf(ret,MAX,"DEFVAR LF@i"); 
+    if(!add_instruction(&list, ret))            
+        return COMPILER_ERR;
+
+	snprintf(ret,MAX,"MOVE LF@i LF@$par0");
+    if(!add_instruction(&list, ret))            
         return COMPILER_ERR;
 
 	snprintf(ret,MAX,"DEFVAR LF@return");   //vytvori navratovu premennu
